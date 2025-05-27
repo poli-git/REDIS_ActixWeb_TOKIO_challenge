@@ -27,7 +27,7 @@ RUN mkdir -p src && \
 
 # Copy your source code
 COPY src ./src
-COPY migrations ./migrations
+COPY storage/migrations .storage/migrations
 COPY .env ./
 
 # Touch main.rs to prevent cached release build

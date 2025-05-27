@@ -1,4 +1,4 @@
-CREATE TABLE events (
+CREATE TABLE event (
     id UUID PRIMARY KEY,
     providers_id UUID NOT NULL,
     name TEXT NOT NULL,
@@ -8,5 +8,5 @@ CREATE TABLE events (
     updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
 
 
-    foreign key (providers_id) references providers(id)
+    foreign key (providers_id) references provider(id)
 );

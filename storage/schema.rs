@@ -1,9 +1,9 @@
 // @generated automatically by Diesel CLI.
 
 diesel::table! {
-    events (id) {
+    event (id) {
         id -> Uuid,
-        providers_id -> Uuid,
+        provider_id -> Uuid,
         name -> Text,
         description -> Text,
         is_active -> Bool,
@@ -13,7 +13,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    providers (id) {
+    provider (id) {
         id -> Uuid,
         name -> Text,
         description -> Text,
@@ -24,9 +24,9 @@ diesel::table! {
     }
 }
 
-diesel::joinable!(events -> providers (providers_id));
+diesel::joinable!(event -> provider (provider_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
-    events,
-    providers,
+    event,
+    provider,
 );
