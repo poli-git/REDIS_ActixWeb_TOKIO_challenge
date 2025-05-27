@@ -3,7 +3,7 @@
 diesel::table! {
     event (id) {
         id -> Uuid,
-        provider_id -> Uuid,
+        providers_id -> Uuid,
         name -> Text,
         description -> Text,
         is_active -> Bool,
@@ -24,7 +24,7 @@ diesel::table! {
     }
 }
 
-diesel::joinable!(event -> provider (provider_id));
+diesel::joinable!(event -> provider (providers_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     event,
