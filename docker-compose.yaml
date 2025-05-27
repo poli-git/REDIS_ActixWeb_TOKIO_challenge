@@ -1,6 +1,6 @@
 version: "3.7"
 services:
-  postgresql:
+  db:
     image: postgres
     container_name: postgres
     ports:
@@ -8,13 +8,24 @@ services:
     networks:
       - production-network
     environment:
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=postgres
+      POSTGRES_HOST_AUTH_METHOD: trust
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: events_db
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U postgres" ]
       interval: 5s
       timeout: 5s
       retries: 5  
+  app:
+    build: .    
+    environment:
+      DATABASE_URL: "postgres://postgres:postgres@db:5432/events_db"
+    volumes:
+      - ./migrations:/app/migrations  
+    depends_on:
+      db:
+        condition: service_healthy
   redis:
     image: redis
     container_name: redis
@@ -30,3 +41,7 @@ services:
 networks:
   production-network:
     driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
