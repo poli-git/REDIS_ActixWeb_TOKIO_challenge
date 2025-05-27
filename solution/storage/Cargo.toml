@@ -1,6 +1,6 @@
 [package]
 authors = ["Pablo Bisceglia <pbisceglia@gmail.com>"]
-name = "fever_challenge"
+name = "storage"
 version = "0.1.0"
 edition = "2021"
 

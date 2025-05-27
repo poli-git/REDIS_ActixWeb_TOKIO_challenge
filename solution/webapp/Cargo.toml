@@ -1,0 +1,9 @@
+[package]
+authors = ["Pablo Bisceglia <pbisceglia@gmail.com>"]
+name = "webapp"
+version = "0.1.0"
+edition = "2021"
+
+
+
+[dependencies]
