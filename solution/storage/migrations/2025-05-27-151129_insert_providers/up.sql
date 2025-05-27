@@ -1,5 +1,5 @@
 INSERT INTO 
-	provider
+	providers
 (
     id,
 	name,

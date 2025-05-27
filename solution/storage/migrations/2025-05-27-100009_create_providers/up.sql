@@ -1,4 +1,4 @@
-CREATE TABLE provider (
+CREATE TABLE providers (
     id UUID PRIMARY KEY,     
     name TEXT NOT NULL,
     description TEXT NOT NULL,

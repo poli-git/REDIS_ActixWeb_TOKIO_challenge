@@ -1,32 +1,47 @@
-use crate::storage::schema::provider;
+
 use chrono::prelude::*;
 use uuid::Uuid;
-
 #[derive(
-    Identifiable,
     Debug,
     Serialize,
     Deserialize,
     Associations,
-    QueryableByName,
+    Identifiable,
+    Insertable,
     Queryable,
     PartialEq,
     Clone,
 )]
-#[primary_key(uid)]
-#[table_name = "provider"]
 pub struct Provider {
-    pub created_at: chrono::DateTime<Utc>,
-    pub updated_at: chrono::DateTime<Utc>,
-    pub enc_data_key: Option<Vec<u8>>,
-    pub uid: Uuid,
-    pub version: i64,
+    pub id: Uuid,
+    pub name: String,
+    pub description: String,
+    pub url: String,
+    pub is_active: bool,
+    pub created_at: chrono::NaiveDateTime,
+    pub updated_at: chrono::NaiveDateTime,
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Clone, Insertable)]
-#[table_name = "provider"]
-pub struct BaseProvider {
-    pub enc_data_key: Option<Vec<u8>>,
-    pub uid: Uuid,
-    pub version: i64,
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
+pub struct NewProvider {
+    pub id: Uuid,
+    pub name: String,
+    pub description: String,
+    pub url: String, 
+}
+
+impl From<NewProvider> for Provider {
+    fn from(provider: NewProvider) -> Self {
+        let now = Utc::now().naive_utc();
+
+        Provider {
+            id: provider.id,
+            name: provider.name,
+            description: provider.description,
+            url: provider.url,
+            is_active: true,
+            created_at: now,            
+            updated_at: now,
+        }
+    }
 }
