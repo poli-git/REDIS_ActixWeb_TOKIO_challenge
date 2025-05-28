@@ -8,5 +8,5 @@ CREATE TABLE events (
     updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
 
 
-    foreign key (providers_id) references providers(id)
+    CONSTRAINT fk_events_provider_id FOREIGN KEY (providers_id) REFERENCES providers(id)
 );

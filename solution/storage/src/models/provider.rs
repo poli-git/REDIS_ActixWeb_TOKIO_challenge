@@ -1,4 +1,4 @@
-
+use crate::schema::providers;
 use chrono::prelude::*;
 use uuid::Uuid;
 #[derive(
@@ -12,6 +12,7 @@ use uuid::Uuid;
     PartialEq,
     Clone,
 )]
+#[table_name = "providers"]
 pub struct Provider {
     pub id: Uuid,
     pub name: String,
@@ -27,7 +28,7 @@ pub struct NewProvider {
     pub id: Uuid,
     pub name: String,
     pub description: String,
-    pub url: String, 
+    pub url: String,
 }
 
 impl From<NewProvider> for Provider {
@@ -40,7 +41,7 @@ impl From<NewProvider> for Provider {
             description: provider.description,
             url: provider.url,
             is_active: true,
-            created_at: now,            
+            created_at: now,
             updated_at: now,
         }
     }

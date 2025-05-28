@@ -9,7 +9,7 @@ async_proc_macro = { path = "src/async_proc_macro" }
 bigdecimal = "0.1.2" # https://docs.rs/crate/diesel/1.4.0
 chrono = { version = "0.4", features = ["serde"] }
 diesel = { version = "1.4", features = ["chrono", "postgres", "r2d2", "serde_json", "uuidv07", "numeric"] }
-dotenv = "0.13.0"
+dotenv = "0.15.0"
 envy = "0.4"
 env_logger = "0.11.8"
 failure = "0.1.5"

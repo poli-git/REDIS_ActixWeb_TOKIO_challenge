@@ -1,2 +1,2 @@
-pub mod provider;
 pub mod event;
+pub mod provider;

@@ -1,11 +1,9 @@
-use actix_web::{error, HttpResponse};
 use diesel::r2d2::{Error as R2d2Error, PoolError};
 pub use diesel::result::{DatabaseErrorKind, Error as DieselError};
 use log::*;
 use std::convert::From;
 use strum::EnumMessage;
 use tokio::task::JoinError;
-use utils::error::*;
 
 #[derive(strum_macros::EnumMessage, Fail, Debug)]
 pub enum Error {
@@ -28,36 +26,6 @@ pub enum Error {
     #[fail(display = "Unknown error: {}", _0)]
     #[strum(message = "StorageUnknownError")]
     UnknownError(String),
-}
-
-impl error::ResponseError for Error {
-    fn error_response(&self) -> HttpResponse {
-        error!("{}", self);
-        match self {
-            Error::ConnectionPoolError(_) => {
-                HttpResponse::ServiceUnavailable().json::<ErrorResponse>(self.into())
-            }
-            Error::DuplicateEntryError(_) => {
-                HttpResponse::Conflict().json::<ErrorResponse>(self.into())
-            }
-            Error::NotFoundError(_) => HttpResponse::NotFound().json::<ErrorResponse>(self.into()),
-            Error::UnknownError(_) | Error::ParseError(_) => {
-                HttpResponse::InternalServerError().json::<ErrorResponse>(self.into())
-            }
-        }
-    }
-}
-
-/// Utility to make transforming a LibError into an ErrorResponse
-impl From<&Error> for ErrorResponse {
-    fn from(error: &Error) -> Self {
-        ErrorResponse {
-            errors: vec![CodedError {
-                code: error.get_message().unwrap_or("").to_string(),
-                message: error.to_string(),
-            }],
-        }
-    }
 }
 
 impl From<PoolError> for Error {
