@@ -1,7 +1,8 @@
 use crate::schema::events;
-use chrono::prelude::Utc;
-use std::convert::From;
 
+use crate::models::provider::Provider;
+use chrono::prelude::*;
+use uuid::Uuid;
 #[derive(
     Debug,
     Serialize,
@@ -13,10 +14,11 @@ use std::convert::From;
     PartialEq,
     Clone,
 )]
-
+#[belongs_to(Provider, foreign_key = "providers_id")]
+#[table_name = "events"]
 pub struct Event {
-    pub id: i32,
-    pub providers_id: i32,
+    pub id: Uuid,
+    pub providers_id: Uuid,
     pub name: String,
     pub description: String,
     pub is_active: bool,
@@ -26,8 +28,8 @@ pub struct Event {
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 pub struct NewEvent {
-    pub id: i32,
-    pub providers_id: i32,
+    pub id: Uuid,
+    pub providers_id: Uuid,
     pub name: String,
     pub description: String,
 }

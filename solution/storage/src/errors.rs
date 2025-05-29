@@ -1,9 +1,11 @@
+use actix_web::{error, HttpResponse};
 use diesel::r2d2::{Error as R2d2Error, PoolError};
 use uuid::Uuid;
 
 pub use diesel::result::{DatabaseErrorKind, Error as DieselError};
 use std::convert::From;
 use tokio::task::JoinError;
+use utils::error::*;
 
 pub type StorageResult<T> = Result<T, StorageError>;
 
@@ -112,7 +114,47 @@ pub enum StorageError {
     ParseError(String),
 }
 
+<<<<<<< HEAD
 impl From<R2d2Error> for StorageError {
+=======
+impl error::ResponseError for Error {
+    fn error_response(&self) -> HttpResponse {
+        error!("{}", self);
+        match self {
+            Error::ConnectionPoolError(_) => {
+                HttpResponse::ServiceUnavailable().json::<ErrorResponse>(self.into())
+            }
+            Error::DuplicateEntryError(_) => {
+                HttpResponse::Conflict().json::<ErrorResponse>(self.into())
+            }
+            Error::NotFoundError(_) => HttpResponse::NotFound().json::<ErrorResponse>(self.into()),
+            Error::UnknownError(_) | Error::ParseError(_) => {
+                HttpResponse::InternalServerError().json::<ErrorResponse>(self.into())
+            }
+        }
+    }
+}
+
+/// Utility to make transforming a LibError into an ErrorResponse
+impl From<&Error> for ErrorResponse {
+    fn from(error: &Error) -> Self {
+        ErrorResponse {
+            errors: vec![CodedError {
+                code: error.get_message().unwrap_or("").to_string(),
+                message: error.to_string(),
+            }],
+        }
+    }
+}
+
+impl From<PoolError> for Error {
+    fn from(error: PoolError) -> Self {
+        Error::ConnectionPoolError(error.to_string())
+    }
+}
+
+impl From<R2d2Error> for Error {
+>>>>>>> parent of f402696 (Added DB functions)
     fn from(error: R2d2Error) -> Self {
         StorageError::ConnectionPoolError(error.to_string())
     }

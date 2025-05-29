@@ -20,5 +20,5 @@ pub mod pool;
 pub mod schema;
 
 pub mod event;
-pub mod models;
 pub mod provider;
+pub mod models;

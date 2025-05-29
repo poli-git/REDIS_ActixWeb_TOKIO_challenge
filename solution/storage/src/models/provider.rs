@@ -1,8 +1,25 @@
+<<<<<<< HEAD
 use crate::schema::providers;
 use chrono::prelude::Utc;
 use std::convert::From;
 
 #[derive(Debug, Serialize, Deserialize, Queryable)]
+=======
+
+use chrono::prelude::*;
+use uuid::Uuid;
+#[derive(
+    Debug,
+    Serialize,
+    Deserialize,
+    Associations,
+    Identifiable,
+    Insertable,
+    Queryable,
+    PartialEq,
+    Clone,
+)]
+>>>>>>> parent of f402696 (Added DB functions)
 pub struct Provider {
     pub id: i32,
     pub name: String,
@@ -18,7 +35,7 @@ pub struct NewProvider {
     pub id: i64,
     pub name: String,
     pub description: String,
-    pub url: String,
+    pub url: String, 
 }
 
 impl From<NewProvider> for Provider {
@@ -31,7 +48,7 @@ impl From<NewProvider> for Provider {
             description: provider.description,
             url: provider.url,
             is_active: true,
-            created_at: now,
+            created_at: now,            
             updated_at: now,
         }
     }
