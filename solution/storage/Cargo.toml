@@ -5,10 +5,11 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-async_proc_macro = { path = "src/async_proc_macro" }
-bigdecimal = "0.1.2" # https://docs.rs/crate/diesel/1.4.0
+bigdecimal = "0.4.8" # https://docs.rs/crate/diesel/1.4.0
 chrono = { version = "0.4", features = ["serde"] }
-diesel = { version = "1.4", features = ["chrono", "postgres", "r2d2", "serde_json", "uuidv07", "numeric"] }
+
+
+diesel = { version = "2.1.4", features = ["postgres", "r2d2"] } 
 dotenv = "0.15.0"
 envy = "0.4"
 env_logger = "0.11.8"
@@ -20,8 +21,8 @@ r2d2 = "0.8.4"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "^1.0.40"
 serde_derive = "1.0"
-strum = { version = "0.18.0", features = ["derive"] }
-strum_macros = "0.18.0"
+strum = { version = "0.27.1", features = ["derive"] }
+strum_macros = "0.27.1"
 tokio = { version = "0.2.25", features = ["blocking", "macros"]}
 uuid = { version = "0.8", features = ["serde", "v4"] }
 web3 = "0.19.0"

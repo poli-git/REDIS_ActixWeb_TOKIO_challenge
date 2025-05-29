@@ -1,18 +1,10 @@
-use crate::schema::providers;
 use chrono::prelude::*;
+use diesel::Selectable;
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-#[derive(
-    Debug,
-    Serialize,
-    Deserialize,
-    Associations,
-    Identifiable,
-    Insertable,
-    Queryable,
-    PartialEq,
-    Clone,
-)]
-#[table_name = "providers"]
+
+#[derive(Debug, Serialize, Deserialize, Queryable, Selectable)]
+#[diesel(table_name=crate::schema::providers)]
 pub struct Provider {
     pub id: Uuid,
     pub name: String,

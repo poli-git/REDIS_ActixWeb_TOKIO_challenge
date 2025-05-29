@@ -1,21 +1,13 @@
-use crate::schema::events;
+use diesel::prelude::*;
+use diesel::Selectable;
+use diesel_derive_enum;
+use serde::{Deserialize, Serialize};
 
-use crate::models::provider::Provider;
 use chrono::prelude::*;
 use uuid::Uuid;
-#[derive(
-    Debug,
-    Serialize,
-    Deserialize,
-    Associations,
-    Identifiable,
-    Insertable,
-    Queryable,
-    PartialEq,
-    Clone,
-)]
-#[belongs_to(Provider, foreign_key = "providers_id")]
-#[table_name = "events"]
+
+#[derive(Debug, Serialize, Deserialize, Queryable, Selectable)]
+#[diesel(table_name=crate::schema::events)]
 pub struct Event {
     pub id: Uuid,
     pub providers_id: Uuid,

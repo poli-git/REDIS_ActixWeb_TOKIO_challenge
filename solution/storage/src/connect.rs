@@ -1,28 +1,16 @@
-use crate::errors::Error;
-use crate::pool::{pooled_connection, PooledConn};
-pub use diesel::{
-    pg::PgConnection,
-    r2d2::{self, ConnectionManager, Pool, PooledConnection},
-    Connection,
-};
+use crate::errors::{StorageError, StorageResult};
+use diesel::pg::PgConnection;
+use diesel::r2d2::{ConnectionManager, Pool};
+use r2d2::PooledConnection;
 
-/// Retrieve a pooled connection from the pool
-pub fn connect() -> Result<PooledConn, Error> {
-    pooled_connection()
-}
+pub type DbPool = Pool<ConnectionManager<PgConnection>>;
+pub type DbConnection = PooledConnection<ConnectionManager<PgConnection>>;
 
-/// Hits the DB with a noop query to test connectivity
-pub fn is_healthy(connect: &PooledConn) -> bool {
-    connect.execute("SELECT 1").map(|_| ()).is_ok()
-}
+pub fn init_pool(database_url: &str) -> StorageResult<DbPool> {
+    let manager = ConnectionManager::new(database_url);
+    let pool = Pool::builder()
+        .build(manager)
+        .map_err(|e| StorageError::DatabaseConnectionError(e.to_string()))?;
 
-#[cfg(test)]
-pub mod tests {
-    use super::*;
-
-    #[test]
-    fn it_checks_health() {
-        let healthy = is_healthy(&connect().unwrap());
-        assert!(healthy);
-    }
+    Ok(pool)
 }

@@ -1,4 +1,4 @@
-use crate::errors::Error;
+use crate::errors::StorageError;
 // use crate::helpers::{not_found, Param};
 use crate::models::provider::*;
 use crate::pool::PooledConn;
@@ -20,8 +20,8 @@ use diesel::prelude::*;
 /// let results = get_users(&connect, first_game.id, 1, 5).unwrap();
 /// assert!(results.len() > 0);
 /// ```
-#[make_non_blocking]
-pub fn get_providers(connect: &PooledConn) -> Result<Vec<Provider>, Error> {
+
+pub fn get_providers(connect: &PooledConn) -> Result<Vec<Provider>, StorageError> {
     let data = providers
         .filter(is_active.eq(true))
         .load::<Provider>(connect)?;

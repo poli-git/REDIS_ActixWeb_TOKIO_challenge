@@ -10,10 +10,7 @@ extern crate diesel;
 extern crate chrono;
 extern crate dotenv;
 extern crate rand;
-#[macro_use]
-extern crate strum_macros;
-#[macro_use]
-extern crate async_proc_macro;
+
 extern crate uuid;
 
 pub mod config;
