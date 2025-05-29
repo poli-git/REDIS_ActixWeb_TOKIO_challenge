@@ -1,15 +1,22 @@
-use diesel::prelude::*;
-use diesel::Selectable;
-use serde::{Deserialize, Serialize};
+use crate::schema::events;
+use chrono::prelude::Utc;
+use std::convert::From;
 
-use chrono::prelude::*;
-use uuid::Uuid;
+#[derive(
+    Debug,
+    Serialize,
+    Deserialize,
+    Associations,
+    Identifiable,
+    Insertable,
+    Queryable,
+    PartialEq,
+    Clone,
+)]
 
-#[derive(Debug, Serialize, Deserialize, Queryable, Selectable)]
-#[diesel(table_name=crate::schema::events)]
 pub struct Event {
-    pub id: Uuid,
-    pub providers_id: Uuid,
+    pub id: i32,
+    pub providers_id: i32,
     pub name: String,
     pub description: String,
     pub is_active: bool,
@@ -19,8 +26,8 @@ pub struct Event {
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 pub struct NewEvent {
-    pub id: Uuid,
-    pub providers_id: Uuid,
+    pub id: i32,
+    pub providers_id: i32,
     pub name: String,
     pub description: String,
 }

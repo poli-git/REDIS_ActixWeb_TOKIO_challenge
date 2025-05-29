@@ -1,12 +1,10 @@
-use chrono::prelude::*;
-use diesel::Selectable;
-use serde::{Deserialize, Serialize};
-use uuid::Uuid;
+use crate::schema::providers;
+use chrono::prelude::Utc;
+use std::convert::From;
 
-#[derive(Debug, Serialize, Deserialize, Queryable, Selectable)]
-#[diesel(table_name=crate::schema::providers)]
+#[derive(Debug, Serialize, Deserialize, Queryable)]
 pub struct Provider {
-    pub id: Uuid,
+    pub id: i32,
     pub name: String,
     pub description: String,
     pub url: String,
@@ -17,7 +15,7 @@ pub struct Provider {
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 pub struct NewProvider {
-    pub id: Uuid,
+    pub id: i64,
     pub name: String,
     pub description: String,
     pub url: String,

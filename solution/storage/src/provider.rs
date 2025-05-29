@@ -5,8 +5,6 @@ use crate::pool::PooledConn;
 use crate::schema::providers::dsl::*;
 
 use diesel::prelude::*;
-// use std::collections::HashMap;
-// use uuid::Uuid;
 
 /// Get all users for game
 ///

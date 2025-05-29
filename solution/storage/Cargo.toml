@@ -4,11 +4,16 @@ name = "storage"
 version = "0.1.0"
 edition = "2021"
 
+
+
 [dependencies]
 bigdecimal = "0.4.8" # https://docs.rs/crate/diesel/1.4.0
 chrono = { version = "0.4", features = ["serde"] }
 
-diesel = { version = "2.1.4", features = ["postgres", "r2d2"] } 
+
+diesel = { version = "1.4", features = ["chrono", "postgres", "r2d2", "serde_json", "uuidv07", "numeric", "num-bigint"] }
+
+
 dotenv = "0.15.0"
 env_logger = "0.11.8"
 envy = "0.4"
