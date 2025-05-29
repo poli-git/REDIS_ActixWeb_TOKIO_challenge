@@ -1,6 +1,5 @@
 use diesel::prelude::*;
 use diesel::Selectable;
-use diesel_derive_enum;
 use serde::{Deserialize, Serialize};
 
 use chrono::prelude::*;
