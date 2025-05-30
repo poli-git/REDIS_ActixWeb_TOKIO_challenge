@@ -1,11 +1,7 @@
-<<<<<<< HEAD
+
 use crate::schema::providers;
 use chrono::prelude::Utc;
 use std::convert::From;
-
-#[derive(Debug, Serialize, Deserialize, Queryable)]
-=======
-
 use chrono::prelude::*;
 use uuid::Uuid;
 #[derive(
@@ -19,7 +15,7 @@ use uuid::Uuid;
     PartialEq,
     Clone,
 )]
->>>>>>> parent of f402696 (Added DB functions)
+
 pub struct Provider {
     pub id: i32,
     pub name: String,

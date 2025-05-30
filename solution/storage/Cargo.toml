@@ -9,20 +9,14 @@ edition = "2021"
 [dependencies]
 bigdecimal = "0.4.8" # https://docs.rs/crate/diesel/1.4.0
 chrono = { version = "0.4", features = ["serde"] }
-<<<<<<< HEAD
-
 
 diesel = { version = "1.4", features = ["chrono", "postgres", "r2d2", "serde_json", "uuidv07", "numeric", "num-bigint"] }
 
 
 dotenv = "0.15.0"
-=======
-diesel = { version = "1.4", features = ["chrono", "postgres", "r2d2", "serde_json", "uuidv07", "numeric"] }
-dotenv = "0.13.0"
 envy = "0.4"
->>>>>>> parent of f402696 (Added DB functions)
 env_logger = "0.11.8"
-envy = "0.4"
+
 failure = "0.1.5"
 lazy_static = "1.3.0"
 log = "0.4.0"
