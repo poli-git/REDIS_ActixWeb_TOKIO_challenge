@@ -1,7 +1,5 @@
-use crate::errors::StorageError;
 // use crate::helpers::{not_found, Param};
 use crate::models::provider::*;
-use crate::pool::PooledConn;
 use crate::schema::providers::dsl::*;
 
 use diesel::prelude::*;
@@ -19,9 +17,4 @@ use diesel::prelude::*;
 /// assert!(results.len() > 0);
 /// ```
 
-pub fn get_providers(connect: &PooledConn) -> Result<Vec<Provider>, StorageError> {
-    let data = providers
-        .filter(is_active.eq(true))
-        .load::<Provider>(connect)?;
-    Ok(data)
-}
+

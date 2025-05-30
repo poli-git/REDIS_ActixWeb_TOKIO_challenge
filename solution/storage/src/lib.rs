@@ -13,12 +13,9 @@ extern crate rand;
 
 extern crate uuid;
 
-pub mod config;
-pub mod connect;
-pub mod errors;
-pub mod pool;
+
 pub mod schema;
 
-pub mod event;
+//pub mod event;
 pub mod provider;
 pub mod models;

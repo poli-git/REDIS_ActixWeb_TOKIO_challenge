@@ -17,7 +17,7 @@ use uuid::Uuid;
 )]
 
 pub struct Provider {
-    pub id: i32,
+    pub id: Uuid,
     pub name: String,
     pub description: String,
     pub url: String,
@@ -28,7 +28,7 @@ pub struct Provider {
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 pub struct NewProvider {
-    pub id: i64,
+    pub id: Uuid,
     pub name: String,
     pub description: String,
     pub url: String, 

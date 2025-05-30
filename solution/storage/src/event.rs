@@ -1,7 +1,4 @@
-use crate::errors::StorageError;
-// use crate::helpers::{not_found, Param};
 use crate::models::event::*;
-use crate::pool::PooledConn;
 use crate::schema::events::dsl::*;
 
 use diesel::prelude::*;
@@ -21,7 +18,4 @@ use diesel::prelude::*;
 /// assert!(results.len() > 0);
 /// ```
 
-pub fn get_events(connect: &PooledConn) -> Result<Vec<Event>, StorageError> {
-    let data = events.filter(is_active.eq(true)).load::<Event>(connect)?;
-    Ok(data)
-}
+
