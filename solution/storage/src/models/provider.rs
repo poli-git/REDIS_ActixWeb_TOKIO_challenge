@@ -1,19 +1,18 @@
 use crate::schema::providers;
 use chrono::prelude::Utc;
 use chrono::prelude::*;
-use serde::Serialize;
+use diesel::{backend::Backend, Insertable, Queryable};
+use serde::Deserialize;
 use std::convert::From;
 use uuid::Uuid;
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct ListProvider {
+    pub data: Vec<Provider>,
+}
+
 #[derive(
-    Debug,
-    Serialize,
-    Deserialize,
-    Associations,
-    Identifiable,
-    Insertable,
-    Queryable,
-    PartialEq,
-    Clone,
+    Debug, Serialize, Deserialize, Associations, Identifiable, Queryable, PartialEq, Clone,
 )]
 #[table_name = "providers"]
 pub struct Provider {

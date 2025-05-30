@@ -1,7 +1,11 @@
 use crate::models::provider::*;
 use crate::schema::providers;
-use diesel::prelude::*; // Import the schema
+use diesel::{RunQueryDsl}; // Import the schema
 
-pub fn get_providers(connection: &mut PgConnection) -> Vec<Provider> {
-    providers::table.load::<Provider>(connection).unwrap()
+use crate::connections::db_connection::PgPooledConnection;
+
+pub fn get_providers(connection: &PgPooledConnection) -> Vec<Provider> {
+    let result = providers::table.load::<Provider>(connection).unwrap();
+
+    result
 }

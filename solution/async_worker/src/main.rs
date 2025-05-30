@@ -4,10 +4,15 @@ use storage::provider::get_providers;
 fn main() {
     println!("Hello, world!");
 
-    let mut con = establish_connection();
-    let providers = get_providers(&mut con);
+    let connection = establish_connection();
+    let pg_pool = connection.get().unwrap();
 
-    for provider in providers {
-        println!("{:?}", provider);
+    let result = get_providers(&pg_pool);
+
+    for provider in result
+    {
+
+        println!("{}", provider.id);
+        println!("{}", provider.name);
     }
 }
