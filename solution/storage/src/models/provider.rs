@@ -1,8 +1,8 @@
-
 use crate::schema::providers;
 use chrono::prelude::Utc;
-use std::convert::From;
 use chrono::prelude::*;
+use serde::Serialize;
+use std::convert::From;
 use uuid::Uuid;
 #[derive(
     Debug,
@@ -15,7 +15,7 @@ use uuid::Uuid;
     PartialEq,
     Clone,
 )]
-
+#[table_name = "providers"]
 pub struct Provider {
     pub id: Uuid,
     pub name: String,
@@ -31,20 +31,20 @@ pub struct NewProvider {
     pub id: Uuid,
     pub name: String,
     pub description: String,
-    pub url: String, 
+    pub url: String,
 }
 
 impl From<NewProvider> for Provider {
-    fn from(provider: NewProvider) -> Self {
-        let now = Utc::now().naive_utc();
+    fn from(new_provider: NewProvider) -> Self {
+        let now: NaiveDateTime = Utc::now().naive_utc();
 
         Provider {
-            id: provider.id,
-            name: provider.name,
-            description: provider.description,
-            url: provider.url,
+            id: new_provider.id,
+            name: new_provider.name,
+            description: new_provider.description,
+            url: new_provider.url,
             is_active: true,
-            created_at: now,            
+            created_at: now,
             updated_at: now,
         }
     }

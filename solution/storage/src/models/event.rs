@@ -1,18 +1,10 @@
-use crate::schema::events;
-
 use crate::models::provider::Provider;
+use crate::schema::events;
 use chrono::prelude::*;
+use serde::Serialize;
 use uuid::Uuid;
 #[derive(
-    Debug,
-    Serialize,
-    Deserialize,
-    Associations,
-    Identifiable,
-    Insertable,
-    Queryable,
-    PartialEq,
-    Clone,
+    Debug, Serialize, Deserialize, Associations, Identifiable, Queryable, PartialEq, Clone,
 )]
 #[belongs_to(Provider, foreign_key = "providers_id")]
 #[table_name = "events"]

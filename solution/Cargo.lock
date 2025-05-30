@@ -94,6 +94,15 @@ dependencies = [
 [[package]]
 name = "async_worker"
 version = "0.1.0"
+dependencies = [
+ "chrono",
+ "diesel",
+ "dotenv",
+ "serde",
+ "serde_json",
+ "storage",
+ "uuid",
+]
 
 [[package]]
 name = "autocfg"

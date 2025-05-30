@@ -1,10 +1,8 @@
 #[macro_use]
 extern crate serde_derive;
-#[macro_use]
-extern crate lazy_static;
 extern crate envy;
-#[macro_use]
 extern crate failure;
+extern crate lazy_static;
 #[macro_use]
 extern crate diesel;
 extern crate chrono;
@@ -13,9 +11,9 @@ extern crate rand;
 
 extern crate uuid;
 
-
 pub mod schema;
 
-//pub mod event;
-pub mod provider;
+pub mod connections;
+pub mod event;
 pub mod models;
+pub mod provider;
