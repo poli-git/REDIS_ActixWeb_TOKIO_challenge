@@ -6,7 +6,7 @@ edition = "2021"
 
 [dependencies]
 uuid = { version = "0.8", features = ["v4","v5"] }
-diesel = {version = "1.4", features = ["chrono", "postgres", "r2d2", "uuidv07", "serde_json", "numeric"]}
+diesel = { version = "2", features = ["postgres", "chrono", "uuid", "r2d2"] }
 chrono = "0.4"
 dotenv = "*"
 serde = { version = "*", features = ["derive"] }

@@ -5,14 +5,17 @@ fn main() {
     println!("Hello, world!");
 
     let connection = establish_connection();
-    let  pg_pool = connection.get().unwrap();
+    let mut pg_pool = connection.get().unwrap();
 
-    let result = get_providers(&mut pg_pool);
-
-    for provider in result
-    {
-
-        println!("{}", provider.id);
-        println!("{}", provider.name);
+    match get_providers(&mut pg_pool) {
+        Ok(providers) => {
+            for provider in providers {
+                println!("{}", provider.id);
+                println!("{}", provider.name);
+            }
+        }
+        Err(e) => {
+            eprintln!("Error fetching providers: {}", e);
+        }
     }
 }
