@@ -1,7 +1,7 @@
 use crate::schema::providers;
 use chrono::prelude::Utc;
 use chrono::prelude::*;
-use diesel::{backend::Backend, Insertable, Queryable};
+use diesel::Queryable;
 use serde::Deserialize;
 use std::convert::From;
 use uuid::Uuid;
@@ -11,10 +11,8 @@ pub struct ListProvider {
     pub data: Vec<Provider>,
 }
 
-#[derive(
-    Debug, Serialize, Deserialize, Associations, Identifiable, Queryable, PartialEq, Clone,
-)]
-#[table_name = "providers"]
+#[derive(Debug, Serialize, Deserialize, Identifiable, Queryable, PartialEq, Clone)]
+#[diesel(table_name = providers)]
 pub struct Provider {
     pub id: Uuid,
     pub name: String,

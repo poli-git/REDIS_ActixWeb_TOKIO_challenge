@@ -1,7 +1,7 @@
 use crate::models::provider::Provider;
 use crate::schema::events;
 use chrono::prelude::*;
-use serde::{Serialize, Deserialize}; // Import both Serialize and Deserialize
+use serde::{Deserialize, Serialize}; // Import both Serialize and Deserialize
 use uuid::Uuid;
 
 #[derive(
