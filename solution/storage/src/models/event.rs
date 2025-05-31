@@ -1,13 +1,14 @@
 use crate::models::provider::Provider;
 use crate::schema::events;
 use chrono::prelude::*;
-use serde::Serialize;
+use serde::{Serialize, Deserialize}; // Import both Serialize and Deserialize
 use uuid::Uuid;
+
 #[derive(
     Debug, Serialize, Deserialize, Associations, Identifiable, Queryable, PartialEq, Clone,
 )]
 #[belongs_to(Provider, foreign_key = "providers_id")]
-#[table_name = "events"]
+#[diesel(table_name = events)] // Updated attribute for Diesel
 pub struct Event {
     pub id: Uuid,
     pub providers_id: Uuid,
