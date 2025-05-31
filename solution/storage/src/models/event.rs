@@ -7,7 +7,7 @@ use uuid::Uuid;
 #[derive(
     Debug, Serialize, Deserialize, Associations, Identifiable, Queryable, PartialEq, Clone,
 )]
-#[belongs_to(Provider, foreign_key = "providers_id")]
+#[diesel(belongs_to(Provider, foreign_key = providers_id))]
 #[diesel(table_name = events)] // Updated attribute for Diesel
 pub struct Event {
     pub id: Uuid,

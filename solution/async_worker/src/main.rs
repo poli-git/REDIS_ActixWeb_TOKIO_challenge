@@ -5,9 +5,9 @@ fn main() {
     println!("Hello, world!");
 
     let connection = establish_connection();
-    let pg_pool = connection.get().unwrap();
+    let  pg_pool = connection.get().unwrap();
 
-    let result = get_providers(&pg_pool);
+    let result = get_providers(&mut pg_pool);
 
     for provider in result
     {
