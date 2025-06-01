@@ -1,12 +1,14 @@
-
-use actix_web::{web, App, HttpServer, Responder, HttpResponse};
-use storage::connections::cache::connect;
+use actix_web::{web, App, HttpResponse, HttpServer, Responder};
 use redis::Commands;
+use storage::connections::cache::connect;
 
 async fn get_redis_keys() -> impl Responder {
     let mut conn = match connect() {
         Ok(c) => c,
-        Err(e) => return HttpResponse::InternalServerError().body(format!("Redis connection error: {}", e)),
+        Err(e) => {
+            return HttpResponse::InternalServerError()
+                .body(format!("Redis connection error: {}", e))
+        }
     };
 
     let keys: redis::RedisResult<Vec<String>> = conn.keys("*");
@@ -23,11 +25,8 @@ async fn main() -> std::io::Result<()> {
     env_logger::init();
 
     log::info!("Starting webapp on 0.0.0.0:8080");
-    HttpServer::new(|| {
-        App::new()
-            .route("/redis-keys", web::get().to(get_redis_keys))
-    })
-    .bind(("0.0.0.0", 8081))?
-    .run()
-    .await
+    HttpServer::new(|| App::new().route("/redis-keys", web::get().to(get_redis_keys)))
+        .bind(("0.0.0.0", 8081))?
+        .run()
+        .await
 }
