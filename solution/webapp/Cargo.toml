@@ -7,3 +7,9 @@ edition = "2021"
 
 
 [dependencies]
+actix-web = "4.11.0"
+redis = "0.31.0"
+storage = { path = "../storage" }
+dotenv = "*"
+env_logger = "0.11.8"
+log = "0.4"
