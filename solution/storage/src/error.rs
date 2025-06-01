@@ -1,6 +1,6 @@
 use diesel::result::Error as DieselError;
-use std::fmt;
 use std::error::Error;
+use std::fmt;
 
 #[derive(Debug)]
 pub enum StorageError {

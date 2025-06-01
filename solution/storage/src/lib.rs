@@ -14,7 +14,7 @@ extern crate uuid;
 pub mod schema;
 
 pub mod connections;
+pub mod error;
 pub mod event;
 pub mod models;
-pub mod error;
 pub mod provider;

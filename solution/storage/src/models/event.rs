@@ -19,7 +19,8 @@ pub struct Event {
     pub updated_at: chrono::NaiveDateTime,
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone, Insertable)]
+#[diesel(table_name = events)]
 pub struct NewEvent {
     pub id: Uuid,
     pub providers_id: Uuid,

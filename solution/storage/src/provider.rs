@@ -1,11 +1,13 @@
+use crate::connections::db_connection::PgPooledConnection;
+use crate::error::StorageError;
 use crate::models::provider::*;
 use crate::schema::providers;
 use diesel::RunQueryDsl;
-use crate::error::StorageError;
-use crate::connections::db_connection::PgPooledConnection;
 
 pub fn get_providers(connection: &mut PgPooledConnection) -> Result<Vec<Provider>, StorageError> {
-    providers::table.load::<Provider>(connection).map_err(StorageError::from)
+    providers::table
+        .load::<Provider>(connection)
+        .map_err(StorageError::from)
 }
 
 #[cfg(test)]
@@ -38,7 +40,6 @@ mod tests {
 
     #[test]
     fn test_get_providers_returns_error_on_invalid_connection() {
-       
         // Create and immediately drop the connection to simulate an invalid connection
         let connection = establish_connection();
         let pg_pool = connection
