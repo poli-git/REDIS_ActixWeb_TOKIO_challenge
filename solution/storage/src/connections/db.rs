@@ -20,7 +20,6 @@ fn init_pool(database_url: &str) -> Result<PgPool, PoolError> {
     Pool::builder().build(manager)
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -29,9 +28,12 @@ mod tests {
     fn test_establish_connection() {
         let pool = establish_connection();
         let conn = pool.get();
-        assert!(conn.is_ok(), "Failed to get connection from pool: {:?}", conn.err());
+        assert!(
+            conn.is_ok(),
+            "Failed to get connection from pool: {:?}",
+            conn.err()
+        );
     }
-
 
     #[test]
     fn test_init_pool() {
@@ -40,14 +42,12 @@ mod tests {
         assert!(pool.is_ok(), "Failed to create pool: {:?}", pool.err());
     }
 
-
     #[test]
     fn test_init_pool_invalid_url() {
         let database_url = "invalid_url";
         let pool = init_pool(database_url);
         assert!(pool.is_err(), "Expected error for invalid URL, got Ok");
     }
-
 
     #[test]
     fn test_init_pool_empty_url() {
@@ -56,11 +56,13 @@ mod tests {
         assert!(pool.is_err(), "Expected error for empty URL, got Ok");
     }
 
-
     #[test]
     fn test_init_pool_missing_env_var() {
         env::remove_var("DATABASE_URL");
         let pool = init_pool("");
-        assert!(pool.is_err(), "Expected error for missing DATABASE_URL, got Ok");
+        assert!(
+            pool.is_err(),
+            "Expected error for missing DATABASE_URL, got Ok"
+        );
     }
 }

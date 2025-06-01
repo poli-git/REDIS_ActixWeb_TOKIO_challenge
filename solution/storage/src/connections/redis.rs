@@ -11,12 +11,15 @@ pub fn connect() -> Result<Connection, RedisError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
 
     #[test]
     fn test_redis_connect() {
         let result = connect();
-        assert!(result.is_ok(), "Failed to connect to Redis: {:?}", result.err());
+        assert!(
+            result.is_ok(),
+            "Failed to connect to Redis: {:?}",
+            result.err()
+        );
     }
 
     #[test]
@@ -25,11 +28,20 @@ mod tests {
         let key = "test_key";
         let value = "test_value";
 
-        let set_result: redis::RedisResult<()> = redis::cmd("SET").arg(key).arg(value).query(&mut conn);
-        assert!(set_result.is_ok(), "Failed to set key in Redis: {:?}", set_result.err());
+        let set_result: redis::RedisResult<()> =
+            redis::cmd("SET").arg(key).arg(value).query(&mut conn);
+        assert!(
+            set_result.is_ok(),
+            "Failed to set key in Redis: {:?}",
+            set_result.err()
+        );
 
         let get_result: redis::RedisResult<String> = redis::cmd("GET").arg(key).query(&mut conn);
-        assert!(get_result.is_ok(), "Failed to get key from Redis: {:?}", get_result.err());
+        assert!(
+            get_result.is_ok(),
+            "Failed to get key from Redis: {:?}",
+            get_result.err()
+        );
         assert_eq!(get_result.unwrap(), value);
     }
 
@@ -39,9 +51,17 @@ mod tests {
         let key = "test_del_key";
         let value = "to_delete";
 
-        let _: () = redis::cmd("SET").arg(key).arg(value).query(&mut conn).expect("Failed to set key");
+        let _: () = redis::cmd("SET")
+            .arg(key)
+            .arg(value)
+            .query(&mut conn)
+            .expect("Failed to set key");
         let del_result: redis::RedisResult<i32> = redis::cmd("DEL").arg(key).query(&mut conn);
-        assert!(del_result.is_ok(), "Failed to delete key from Redis: {:?}", del_result.err());
+        assert!(
+            del_result.is_ok(),
+            "Failed to delete key from Redis: {:?}",
+            del_result.err()
+        );
         assert_eq!(del_result.unwrap(), 1);
     }
 
