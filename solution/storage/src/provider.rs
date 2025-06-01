@@ -1,12 +1,11 @@
 use crate::models::provider::*;
 use crate::schema::providers;
-use diesel::result::Error;
-use diesel::RunQueryDsl; // Import Diesel's error type
-
+use diesel::RunQueryDsl;
+use crate::error::StorageError;
 use crate::connections::db_connection::PgPooledConnection;
 
-pub fn get_providers(connection: &mut PgPooledConnection) -> Result<Vec<Provider>, Error> {
-    providers::table.load::<Provider>(connection)
+pub fn get_providers(connection: &mut PgPooledConnection) -> Result<Vec<Provider>, StorageError> {
+    providers::table.load::<Provider>(connection).map_err(StorageError::from)
 }
 
 #[cfg(test)]

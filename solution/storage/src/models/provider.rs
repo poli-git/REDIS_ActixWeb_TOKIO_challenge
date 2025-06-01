@@ -4,6 +4,7 @@ use chrono::prelude::*;
 use diesel::Queryable;
 use serde::Deserialize;
 use std::convert::From;
+
 use uuid::Uuid;
 
 #[derive(Serialize, Deserialize, Clone)]
