@@ -1,4 +1,4 @@
-use crate::connections::db_connection::PgPooledConnection;
+use crate::connections::db::PgPooledConnection;
 use crate::error::StorageError;
 use crate::models::provider::*;
 use crate::schema::providers;
@@ -13,7 +13,7 @@ pub fn get_providers(connection: &mut PgPooledConnection) -> Result<Vec<Provider
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::connections::db_connection::establish_connection;
+    use crate::connections::db::establish_connection;
 
     #[test]
     fn test_get_providers_returns_ok() {

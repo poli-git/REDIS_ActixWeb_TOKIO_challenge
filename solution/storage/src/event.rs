@@ -1,4 +1,4 @@
-use crate::connections::db_connection::PgPooledConnection;
+use crate::connections::db::PgPooledConnection;
 use crate::error::StorageError;
 use crate::models::event::*;
 use crate::schema::events;
@@ -39,7 +39,7 @@ pub fn update_event_is_active(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::connections::db_connection::establish_connection;
+    use crate::connections::db::establish_connection;
     use uuid::Uuid;
 
     fn create_test_event() -> NewEvent {
