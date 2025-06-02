@@ -2,21 +2,13 @@ use reqwest::Client;
 use storage::connections::db::establish_connection;
 use storage::event::add_event;
 use storage::models::event::NewEvent;
-// If xml is a sibling module to handler.rs, use super::xml::event_xml::EventList;
-// If event_xml.rs is in the same directory as handler.rs, use crate::event_xml::EventList;
-// Adjust the path according to your project structure:
 
-use super::xml::event_xml::EventList;
-// or, if xml is a sibling module:
-// use super::xml::event_xml::EventList;
+use crate::event_xml::{EventList, BaseEvent};
 
 use log::{error, info};
 use uuid::Uuid;
 
 use quick_xml::de::from_str;
-
-
-
 
 pub async fn process_provider_events(provider_id: Uuid, provider_name: String, url: String) {
     info!(
