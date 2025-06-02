@@ -1,9 +1,8 @@
-use std::thread;
 use storage::connections::db::establish_connection;
 use storage::provider::get_providers;
 
 mod handler;
-use handler::dummy_function;
+use handler::process_provider_events;
 
 #[tokio::main]
 async fn main() {
@@ -28,14 +27,18 @@ async fn main() {
             for provider in providers {
                 let id = provider.id;
                 let name = provider.name.clone();
-                // Spawn a real OS thread for each provider
-                let handle = thread::spawn(move || {
-                    dummy_function(id, name);
+                let url = provider.url.clone();
+
+                log::info!("Processing provider: {} - {}", id, name);
+
+                // Spawn an async task for each provider
+                let handle = tokio::spawn(async move {
+                    process_provider_events(id, name, url).await;
                 });
                 handles.push(handle);
             }
             for handle in handles {
-                let _ = handle.join();
+                let _ = handle.await;
             }
         }
         Err(e) => {
