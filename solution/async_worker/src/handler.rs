@@ -7,48 +7,9 @@ use log::{error, info};
 use uuid::Uuid;
 
 use quick_xml::de::from_str;
-use serde::Deserialize;
 
-#[derive(Debug, Deserialize)]
-struct PlanList {
-    output: Output,
-}
-
-#[derive(Debug, Deserialize)]
-struct Output {
-    #[serde(rename = "base_plan")]
-    base_plans: Vec<BasePlan>,
-}
-
-#[derive(Debug, Deserialize)]
-struct BasePlan {
-    #[serde(rename = "base_plan_id", default)]
-    base_plan_id: Option<u32>,
-    title: String,
-    plan: Plan,
-}
-
-#[derive(Debug, Deserialize)]
-struct Plan {
-    #[serde(rename = "plan_id", default)]
-    plan_id: Option<u32>,
-    #[serde(rename = "plan_start_date")]
-    plan_start_date: String,
-    #[serde(rename = "plan_end_date")]
-    plan_end_date: String,
-    #[serde(rename = "zone")]
-    zones: Vec<Zone>,
-}
-
-#[derive(Debug, Deserialize)]
-struct Zone {
-    #[serde(rename = "zone_id", default)]
-    zone_id: Option<u32>,
-    capacity: u32,
-    price: f32,
-    name: String,
-    numbered: bool,
-}
+mod event_xml;
+use crate::event_xml::*;
 
 pub async fn process_provider_events(provider_id: Uuid, provider_name: String, url: String) {
     info!(
@@ -76,28 +37,27 @@ pub async fn process_provider_events(provider_id: Uuid, provider_name: String, u
     };
 
     // Parse XML into PlanList
-    let plan_list: PlanList = match from_str(&xml_body) {
+    let plan_list: EventList = match from_str(&xml_body) {
         Ok(pl) => pl,
         Err(e) => {
             error!("Failed to parse XML from {}: {}", url, e);
             return;
         }
     };
-
-    // Map PlanList into Vec<NewEvent>
-    let events: Vec<NewEvent> = plan_list
+    // Map EventList into Vec<NewEvent>
+    let events: Vec<NewEvent> = event_list
         .output
-        .base_plans
+        .base_events
         .into_iter()
         .map(|bp| NewEvent {
             id: uuid::Uuid::new_v4(),
             providers_id: provider_id,
             name: bp.title,
             description: format!(
-                "Plan from {} to {} with {} zones",
-                bp.plan.plan_start_date,
-                bp.plan.plan_end_date,
-                bp.plan.zones.len()
+                "Event from {} to {} with {} zones",
+                bp.event.event_start_date,
+                bp.event.event_end_date,
+                bp.event.zones.len()
             ),
         })
         .collect();
