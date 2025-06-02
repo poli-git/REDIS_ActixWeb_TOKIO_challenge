@@ -1,14 +1,10 @@
 use std::thread;
 use storage::connections::db::establish_connection;
 use storage::provider::get_providers;
-use uuid::Uuid;
 
-fn dummy_function(provider_id: Uuid, provider_name: String) {
-    println!(
-        "Dummy function called for provider: {} - {}",
-        provider_id, provider_name
-    );
-}
+
+mod handler;
+use handler::dummy_function;
 
 #[tokio::main]
 async fn main() {
