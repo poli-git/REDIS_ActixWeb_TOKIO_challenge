@@ -2,7 +2,6 @@ use std::thread;
 use storage::connections::db::establish_connection;
 use storage::provider::get_providers;
 
-
 mod handler;
 use handler::dummy_function;
 
@@ -17,8 +16,8 @@ async fn main() {
     // Diesel is synchronous, so we use spawn_blocking to avoid blocking async runtime
     let providers = tokio::task::spawn_blocking(|| {
         let connection = establish_connection();
-        let mut pg_pool = connection.get().unwrap();
-        get_providers(&mut pg_pool)
+        let mut pg_pool = connection.get().map_err(|e| e.to_string())?;
+        get_providers(&mut pg_pool).map_err(|e| e.to_string())
     })
     .await
     .expect("Failed to join blocking task");
