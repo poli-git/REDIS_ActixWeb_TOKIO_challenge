@@ -4,6 +4,7 @@ use crate::models::event::*;
 use crate::schema::events;
 use crate::schema::events::id;
 use crate::schema::events::name;
+use crate::schema::events::providers_id;
 use diesel::pg::upsert::excluded;
 use diesel::prelude::*;
 use diesel::RunQueryDsl; // This brings in QueryDsl and ExpressionMethods
@@ -22,7 +23,7 @@ pub fn add_event(
 
     insert_into(events::table)
         .values(&new_event)
-        .on_conflict(id)
+        .on_conflict((id, providers_id))
         .do_update()
         .set(name.eq(excluded(name))) // Handle conflict if the event already exists
         .get_result(connection)
