@@ -16,3 +16,5 @@ serde_json = "*"
 storage = { path = "../storage" }
 tokio = { version = "1", features = ["full"] }
 uuid = { version = "0.8", features = ["v4","v5"] }
+quick-xml = { version = "0.31", features = ["serialize"] }
+
