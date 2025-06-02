@@ -3,7 +3,8 @@ use storage::connections::db::establish_connection;
 use storage::event::add_event;
 use storage::models::event::NewEvent;
 
-use crate::event_xml::{EventList, BaseEvent};
+use crate::mappers::event_xml::EventList;
+
 
 use log::{error, info};
 use uuid::Uuid;
@@ -35,8 +36,8 @@ pub async fn process_provider_events(provider_id: Uuid, provider_name: String, u
         }
     };
 
-    // Parse XML into PlanList
-    let plan_list: EventList = match from_str(&xml_body) {
+    // Parse XML into EventList
+    let event_list: EventList = match from_str(&xml_body) {
         Ok(pl) => pl,
         Err(e) => {
             error!("Failed to parse XML from {}: {}", url, e);
