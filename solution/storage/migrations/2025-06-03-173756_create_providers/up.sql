@@ -1,6 +1,5 @@
 CREATE TABLE providers (
-    id uuid PRIMARY KEY,
-    providers_id bigint NOT NULL,
+    providers_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT NOT NULL,
     description TEXT NOT NULL,
     url TEXT NOT NULL,

@@ -1,7 +1,5 @@
 INSERT INTO providers 
 	(
-		id,
-		providers_id
 		name,
     	description,
     	url,
@@ -9,8 +7,6 @@ INSERT INTO providers
 	)
 VALUES 
 	(   
-		gen_random_uuid(),
-		12
 		'FeverUp',
 		'This is the provider description for FeverUp',
 		'https://provider.code-challenge.feverup.com/api/events',
