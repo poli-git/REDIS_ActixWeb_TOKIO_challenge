@@ -7,6 +7,5 @@ CREATE TABLE events (
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
 
-    UNIQUE (id, providers_id),
     FOREIGN KEY (providers_id) references providers(id)
 );
