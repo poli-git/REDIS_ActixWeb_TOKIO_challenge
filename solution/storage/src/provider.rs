@@ -1,6 +1,6 @@
 use crate::connections::db::PgPooledConnection;
 use crate::error::StorageError;
-use crate::models::provider::*;
+use crate::models::providers::*;
 use crate::schema::providers;
 use diesel::RunQueryDsl;
 

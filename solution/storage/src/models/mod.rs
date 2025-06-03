@@ -1,2 +1,5 @@
 pub mod base_plans;
-pub mod provider;
+pub mod providers;
+pub mod plans;
+pub mod zones;
+
