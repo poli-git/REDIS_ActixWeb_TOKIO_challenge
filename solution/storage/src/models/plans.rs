@@ -2,12 +2,12 @@ use crate::models::base_plans::BasePlan;
 use crate::schema::plans;
 use chrono::prelude::*;
 use serde::{Deserialize, Serialize}; // Import both Serialize and Deserialize
-use uuid::Uuid; 
+use uuid::Uuid;
 
 #[derive(
     Debug, Serialize, Deserialize, Associations, Identifiable, Queryable, PartialEq, Clone,
 )]
-#[diesel(belongs_to(BasePlan, foreign_key = base_plan_id))]
+#[diesel(belongs_to(BasePlan, foreign_key = id))]
 #[diesel(table_name = plans)] // Updated attribute for Diesel
 pub struct Plan {
     pub id: Uuid,
@@ -15,7 +15,7 @@ pub struct Plan {
     #[serde(skip_serializing_if = "Uuid::is_nil")]
     pub base_plan_id: Uuid,
     pub plan_id: i64,
-    #[serde(rename = "plan_start_date")]        
+    #[serde(rename = "plan_start_date")]
     pub plan_start_date: chrono::NaiveDateTime,
     #[serde(rename = "plan_end_date")]
     pub plan_end_date: chrono::NaiveDateTime,
@@ -30,9 +30,9 @@ pub struct Plan {
     #[serde(rename = "updated_at")]
     pub updated_at: chrono::NaiveDateTime,
 }
- 
+
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone, Insertable)]
-#[diesel(table_name = events)]
+#[diesel(table_name = plans)]
 pub struct NewPlan {
     pub id: Uuid,
     pub base_plan_id: Uuid,
@@ -60,6 +60,5 @@ impl From<NewPlan> for Plan {
             created_at: now,
             updated_at: now,
         }
-         
     }
 }

@@ -28,7 +28,7 @@ pub struct BasePlan {
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone, Insertable)]
-#[diesel(table_name = events)]
+#[diesel(table_name = base_plans)]
 pub struct NewBasePlan {
     pub id: Uuid,
     pub providers_id: Uuid,
