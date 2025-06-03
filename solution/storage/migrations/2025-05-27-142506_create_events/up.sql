@@ -6,6 +6,7 @@ CREATE TABLE events (
     is_active BOOL NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    
-    foreign key (providers_id) references providers(id)
+
+    UNIQUE (uuid, providers_id),
+    FOREIGN KEY (providers_id) references providers(id)
 );

@@ -8,39 +8,39 @@ use quick_xml::de::from_str;
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
-#[serde(rename = "eventList")]
-pub struct EventList {
+#[serde(rename = "planList")]
+pub struct PlanList {
     pub output: Output,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct Output {
-    #[serde(rename = "base_event")]
-    pub base_events: Vec<BaseEvent>,
+    #[serde(rename = "base_plan")]
+    pub base_plan: Vec<BasePlan>,
 }
 
 #[derive(Debug, Deserialize)]
-pub struct BaseEvent {
-    #[serde(rename = "@base_event_id")]
-    pub base_event_id: Option<u32>,
+pub struct BasePlan {
+    #[serde(rename = "@base_plan_id")]
+    pub base_plan_id: Option<u32>,
     #[serde(rename = "@sell_mode")]
     pub sell_mode: Option<String>,
     #[serde(rename = "@organizer_company_id")]
     pub organizer_company_id: Option<u32>,
     #[serde(rename = "@title")]
     pub title: String,
-    #[serde(rename = "event")]
-    pub event: Event,
+    #[serde(rename = "plan")]
+    pub plan: Plan,
 }
 
 #[derive(Debug, Deserialize)]
-pub struct Event {
-    #[serde(rename = "@event_start_date")]
-    pub event_start_date: String,
-    #[serde(rename = "@event_end_date")]
-    pub event_end_date: String,
-    #[serde(rename = "@event_id")]
-    pub event_id: Option<u32>,
+pub struct Plan {
+    #[serde(rename = "@plan_start_date")]
+    pub plan_start_date: String,
+    #[serde(rename = "@plan_end_date")]
+    pub plan_end_date: String,
+    #[serde(rename = "@plan_id")]
+    pub plan_id: Option<u32>,
     #[serde(rename = "@sell_from")]
     pub sell_from: Option<String>,
     #[serde(rename = "@sell_to")]
@@ -90,18 +90,18 @@ pub async fn process_provider_events(provider_id: Uuid, provider_name: String, u
         }
     };
 
-    // Parse XML into EventList
-    let event_list: EventList = match from_str(&xml_body) {
+    // Parse XML into PlanList
+    let plan_list: PlanList = match from_str(&xml_body) {
         Ok(pl) => pl,
         Err(e) => {
             error!("Failed to parse XML from {}: {}", url, e);
             return;
         }
     };
-    // Map EventList into Vec<NewEvent>
-    let events: Vec<NewEvent> = event_list
+    // Map PlanList into Vec<NewEvent>
+    let events: Vec<NewEvent> = plan_list
         .output
-        .base_events
+        .base_plan
         .into_iter()
         .map(|bp| NewEvent {
             id: uuid::Uuid::new_v4(),
@@ -109,9 +109,9 @@ pub async fn process_provider_events(provider_id: Uuid, provider_name: String, u
             name: bp.title,
             description: format!(
                 "Event from {} to {} with {} zones",
-                bp.event.event_start_date,
-                bp.event.event_end_date,
-                bp.event.zones.len()
+                bp.plan.plan_start_date,
+                bp.plan.plan_end_date,
+                bp.plan.zones.len()
             ),
         })
         .collect();
