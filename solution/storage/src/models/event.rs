@@ -11,6 +11,7 @@ use uuid::Uuid;
 #[diesel(table_name = events)] // Updated attribute for Diesel
 pub struct Event {
     pub id: Uuid,
+    pub event_id: Uuid,
     pub providers_id: Uuid,
     pub name: String,
     pub description: String,
@@ -23,6 +24,7 @@ pub struct Event {
 #[diesel(table_name = events)]
 pub struct NewEvent {
     pub id: Uuid,
+    pub event_id: Uuid,
     pub providers_id: Uuid,
     pub name: String,
     pub description: String,
@@ -35,6 +37,7 @@ impl From<NewEvent> for Event {
 
         Event {
             id: event.id,
+            event_id: event.event_id,   
             providers_id: event.providers_id,
             name: event.name,
             description: event.description,

@@ -97,10 +97,6 @@ pub async fn process_provider_events(provider_id: Uuid, provider_name: String, u
         }
     };
 
-    //El XML es"
-    info!("XML body: {}", xml_body);
-
-
     // Parse XML into PlanList
     let plan_list: PlanList = match from_str(&xml_body) {
         Ok(pl) => pl,
@@ -117,6 +113,7 @@ pub async fn process_provider_events(provider_id: Uuid, provider_name: String, u
     .flat_map(|bp| {
         bp.plans.into_iter().map(move |plan| NewEvent {
             id: uuid::Uuid::new_v4(),
+            plan_id: plan.plan_id.,
             providers_id: provider_id,
             name: bp.title.clone(),
             description: format!(
