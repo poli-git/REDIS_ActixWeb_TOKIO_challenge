@@ -1,4 +1,4 @@
-use crate::models::provider::Provider;
+use crate::{models::provider::Provider, schema::events::is_active};
 use crate::schema::events;
 use chrono::prelude::*;
 use serde::{Deserialize, Serialize}; // Import both Serialize and Deserialize
@@ -26,6 +26,7 @@ pub struct NewEvent {
     pub providers_id: Uuid,
     pub name: String,
     pub description: String,
+    pub is_active: bool,
 }
 
 impl From<NewEvent> for Event {
@@ -37,7 +38,7 @@ impl From<NewEvent> for Event {
             providers_id: event.providers_id,
             name: event.name,
             description: event.description,
-            is_active: true,
+            is_active: event.is_active,
             created_at: now,
             updated_at: now,
         }

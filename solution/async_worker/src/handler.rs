@@ -1,5 +1,5 @@
 use reqwest::Client;
-use storage::connections::db::establish_connection;
+use storage::{connections::db::establish_connection, schema::events::is_active};
 use storage::event::add_event;
 use storage::models::event::NewEvent;
 use log::{error, info};
@@ -30,7 +30,7 @@ pub struct BasePlan {
     #[serde(rename = "@title")]
     pub title: String,
     #[serde(rename = "plan")]
-    pub plan: Plan,
+     pub plans: Vec<Plan>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -81,6 +81,13 @@ pub async fn process_provider_events(provider_id: Uuid, provider_name: String, u
         }
     };
 
+    // Status
+    let status = response.status();
+    if !status.is_success() {
+        error!("HTTP error {} from {}", status, url);
+        return;
+    }
+
     // Fetch the XML body as text
     let xml_body = match response.text().await {
         Ok(body) => body,
@@ -89,6 +96,10 @@ pub async fn process_provider_events(provider_id: Uuid, provider_name: String, u
             return;
         }
     };
+
+    //El XML es"
+    info!("XML body: {}", xml_body);
+
 
     // Parse XML into PlanList
     let plan_list: PlanList = match from_str(&xml_body) {
@@ -100,21 +111,24 @@ pub async fn process_provider_events(provider_id: Uuid, provider_name: String, u
     };
     // Map PlanList into Vec<NewEvent>
     let events: Vec<NewEvent> = plan_list
-        .output
-        .base_plan
-        .into_iter()
-        .map(|bp| NewEvent {
+    .output
+    .base_plan
+    .into_iter()
+    .flat_map(|bp| {
+        bp.plans.into_iter().map(move |plan| NewEvent {
             id: uuid::Uuid::new_v4(),
             providers_id: provider_id,
-            name: bp.title,
+            name: bp.title.clone(),
             description: format!(
                 "Event from {} to {} with {} zones",
-                bp.plan.plan_start_date,
-                bp.plan.plan_end_date,
-                bp.plan.zones.len()
+                plan.plan_start_date,
+                plan.plan_end_date,
+                plan.zones.len()
             ),
+            is_active: true,
         })
-        .collect();
+    })
+    .collect();
 
     info!("Fetched {} events from {}", events.len(), url);
 
