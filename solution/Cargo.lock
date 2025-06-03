@@ -297,6 +297,7 @@ dependencies = [
  "diesel",
  "dotenv",
  "env_logger",
+ "envy",
  "log",
  "quick-xml",
  "reqwest",

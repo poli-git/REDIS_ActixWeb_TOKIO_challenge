@@ -3,9 +3,12 @@ use crate::error::StorageError;
 use crate::models::providers::*;
 use crate::schema::providers;
 use diesel::RunQueryDsl;
+use diesel::prelude::*;
+use diesel::ExpressionMethods;
 
-pub fn get_providers(connection: &mut PgPooledConnection) -> Result<Vec<Provider>, StorageError> {
+pub fn get_active_providers(connection: &mut PgPooledConnection) -> Result<Vec<Provider>, StorageError> {
     providers::table
+        .filter(providers::is_active.eq(true)) 
         .load::<Provider>(connection)
         .map_err(StorageError::from)
 }
@@ -22,7 +25,7 @@ mod tests {
             .get()
             .expect("Failed to get connection from pool");
 
-        let result = get_providers(&mut pg_pool);
+        let result = get_active_providers(&mut pg_pool);
         assert!(result.is_ok(), "Expected Ok, got {:?}", result);
     }
 
@@ -33,7 +36,7 @@ mod tests {
             .get()
             .expect("Failed to get connection from pool");
 
-        let result = get_providers(&mut pg_pool).expect("Expected Ok result");
+        let result = get_active_providers(&mut pg_pool).expect("Expected Ok result");
         // This just checks that the result is a Vec (could be empty)
         assert!(result.is_empty() || !result.is_empty());
     }
@@ -59,7 +62,7 @@ mod tests {
         // This may not always work depending on the pool implementation,
         // but it's a common pattern for simulating connection errors in tests.
 
-        let result = get_providers(&mut invalid_pg_pool);
+        let result = get_active_providers(&mut invalid_pg_pool);
         assert!(result.is_err(), "Expected Err, got {:?}", result);
     }
 }
