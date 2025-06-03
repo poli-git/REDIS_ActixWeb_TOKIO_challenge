@@ -1,11 +1,13 @@
 use reqwest::Client;
-use storage::{connections::db::establish_connection, schema::events::is_active};
-use storage::event::add_event;
-use storage::models::event::NewEvent;
+use storage::connections::db::establish_connection;
+
 use log::{error, info};
-use uuid::Uuid;
 use quick_xml::de::from_str;
 use serde::Deserialize;
+use storage::base_plan::add_event;
+use storage::models::base_plans::NewBasePlan;
+use storage::models::zones::NewZone;
+use uuid::Uuid;
 
 #[derive(Debug, Deserialize)]
 #[serde(rename = "planList")]
@@ -30,7 +32,7 @@ pub struct BasePlan {
     #[serde(rename = "@title")]
     pub title: String,
     #[serde(rename = "plan")]
-     pub plans: Vec<Plan>,
+    pub plans: Vec<Plan>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -106,28 +108,22 @@ pub async fn process_provider_events(provider_id: Uuid, provider_name: String, u
         }
     };
     // Map PlanList into Vec<NewEvent>
-    let events: Vec<NewEvent> = plan_list
-    .output
-    .base_plan
-    .into_iter()
-    .flat_map(|bp| {
-        bp.plans.into_iter().map(move |plan| NewEvent {
-            id: uuid::Uuid::new_v4(),
-            plan_id: plan.plan_id.,
-            providers_id: provider_id,
-            name: bp.title.clone(),
-            description: format!(
-                "Event from {} to {} with {} zones",
-                plan.plan_start_date,
-                plan.plan_end_date,
-                plan.zones.len()
-            ),
-            is_active: true,
+    let events: Vec<NewBasePlan> = plan_list
+        .output
+        .base_plan
+        .into_iter()
+        .flat_map(|bp| {
+            bp.plans.into_iter().map(move |plan| NewBasePlan {
+                id: uuid::Uuid::new_v4(),
+                providers_id: provider_id,
+                base_plan_id: bp.base_plan_id.map(|id| id as i64).unwrap_or_default(),
+                title: bp.title.clone(),
+                sell_mode: bp.sell_mode.clone().unwrap_or_default(),
+            })
         })
-    })
-    .collect();
+        .collect();
 
-    info!("Fetched {} events from {}", events.len(), url);
+    info!("Fetched {} base_plans from {}", events.len(), url);
 
     // Get DB connection
     let connection = establish_connection();
@@ -142,8 +138,8 @@ pub async fn process_provider_events(provider_id: Uuid, provider_name: String, u
     // Add each event to the database
     for event in events {
         match add_event(&mut pg_pool, event) {
-            Ok(inserted) => info!("Added event: {}", inserted.name),
-            Err(e) => error!("Failed to add event: {}", e),
+            Ok(inserted) => info!("Added base_plan: {} : {}", inserted.title, inserted.id),
+            Err(e) => error!("Failed to add base_plan: {}", e),
         }
     }
 }

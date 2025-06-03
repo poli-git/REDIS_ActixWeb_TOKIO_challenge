@@ -25,7 +25,7 @@ async fn main() {
         Ok(providers) => {
             let mut handles = vec![];
             for provider in providers {
-                let id = provider.id;
+                let id = provider.providers_id;
                 let name = provider.name.clone();
                 let url = provider.url.clone();
 

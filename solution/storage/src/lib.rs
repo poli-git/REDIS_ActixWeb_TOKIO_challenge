@@ -13,8 +13,8 @@ extern crate uuid;
 
 pub mod schema;
 
+pub mod base_plan;
 pub mod connections;
 pub mod error;
-pub mod event;
 pub mod models;
 pub mod provider;

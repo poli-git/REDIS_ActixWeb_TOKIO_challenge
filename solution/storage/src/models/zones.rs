@@ -1,5 +1,5 @@
 use crate::models::plans::Plan;
-use crate::schema::plans;
+use crate::schema::zones;
 use chrono::prelude::*;
 use serde::{Deserialize, Serialize}; // Import both Serialize and Deserialize
 use uuid::Uuid;

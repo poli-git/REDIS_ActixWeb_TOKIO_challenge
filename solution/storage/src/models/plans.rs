@@ -45,7 +45,7 @@ pub struct NewPlan {
 }
 
 impl From<NewPlan> for Plan {
-    fn from(plan: NewBasePlan) -> Self {
+    fn from(plan: NewPlan) -> Self {
         let now = Utc::now().naive_utc();
 
         Plan {
