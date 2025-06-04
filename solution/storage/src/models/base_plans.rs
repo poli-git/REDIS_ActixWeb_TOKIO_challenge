@@ -14,7 +14,7 @@ pub struct BasePlan {
     #[serde(rename = "providers_id")]
     #[serde(skip_serializing_if = "Uuid::is_nil")]
     pub providers_id: Uuid,
-    pub base_plan_id: i64,
+    pub event_base_id: i64,
     #[serde(rename = "title")]
     #[serde(skip_serializing_if = "String::is_empty")]
     pub title: String,
@@ -32,7 +32,7 @@ pub struct BasePlan {
 pub struct NewBasePlan {
     pub id: Uuid,
     pub providers_id: Uuid,
-    pub base_plan_id: i64,
+    pub event_base_id: i64,
     pub title: String,
     pub sell_mode: String,
 }
@@ -43,7 +43,7 @@ impl From<NewBasePlan> for BasePlan {
 
         BasePlan {
             id: base_plan.id,
-            base_plan_id: base_plan.base_plan_id,
+            event_base_id: base_plan.event_base_id,
             title: base_plan.title,
             sell_mode: base_plan.sell_mode,
             providers_id: base_plan.providers_id,

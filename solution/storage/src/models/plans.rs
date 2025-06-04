@@ -1,11 +1,7 @@
-use diesel::Identifiable;
-use diesel::Insertable;
-use diesel::Queryable;
-
 use crate::models::base_plans::BasePlan;
 use crate::schema::plans;
 use chrono::prelude::*;
-// Import both Serialize and Deserialize
+use serde::{Deserialize, Serialize}; 
 use uuid::Uuid;
 
 #[derive(
@@ -16,7 +12,7 @@ use uuid::Uuid;
 pub struct Plan {
     pub id: Uuid,
     pub base_plan_id: Uuid,
-    pub plan_id: i64,
+    pub event_plan_id: i64,
     pub plan_start_date: chrono::NaiveDateTime,
     pub plan_end_date: chrono::NaiveDateTime,
     pub sell_from: Option<chrono::NaiveDateTime>,
@@ -26,12 +22,12 @@ pub struct Plan {
     pub updated_at: chrono::NaiveDateTime,
 }
 
-#[derive(Debug, Insertable)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone, Insertable)]
 #[diesel(table_name = plans)]
 pub struct NewPlan {
     pub id: uuid::Uuid,
     pub base_plan_id: uuid::Uuid,
-    pub plan_id: i64,
+    pub event_plan_id: i64,
     pub plan_start_date: chrono::NaiveDateTime,
     pub plan_end_date: chrono::NaiveDateTime,
     pub sell_from: Option<chrono::NaiveDateTime>,
@@ -46,7 +42,7 @@ impl From<NewPlan> for Plan {
         Plan {
             id: plan.id,
             base_plan_id: plan.base_plan_id,
-            plan_id: plan.plan_id,
+            event_plan_id: plan.event_plan_id,
             plan_start_date: plan.plan_start_date,
             plan_end_date: plan.plan_end_date,
             sell_from: plan.sell_from,

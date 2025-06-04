@@ -21,7 +21,7 @@ pub fn add_event(
 ) -> Result<BasePlan, StorageError> {
     insert_into(base_plans::table)
         .values(&new_base_plan)
-        .on_conflict((base_plans::providers_id, base_plans::base_plan_id))
+        .on_conflict((base_plans::providers_id, base_plans::event_base_id))
         .do_update()
         .set((
             title.eq(&new_base_plan.title),

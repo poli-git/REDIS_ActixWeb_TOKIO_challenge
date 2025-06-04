@@ -4,7 +4,7 @@ diesel::table! {
     base_plans (id) {
         id -> Uuid,
         providers_id -> Uuid,
-        base_plan_id -> Int8,
+        event_base_id -> Int8,
         title -> Text,
         sell_mode -> Text,
         created_at -> Timestamp,
@@ -16,7 +16,7 @@ diesel::table! {
     plans (id) {
         id -> Uuid,
         base_plan_id -> Uuid,
-        plan_id -> Int8,
+        event_plan_id -> Int8,
         plan_start_date -> Timestamp,
         plan_end_date -> Timestamp,
         sell_from -> Timestamp,
@@ -57,4 +57,9 @@ diesel::joinable!(base_plans -> providers (providers_id));
 diesel::joinable!(plans -> base_plans (base_plan_id));
 diesel::joinable!(zones -> plans (plan_id));
 
-diesel::allow_tables_to_appear_in_same_query!(base_plans, plans, providers, zones,);
+diesel::allow_tables_to_appear_in_same_query!(
+    base_plans,
+    plans,
+    providers,
+    zones,
+);

@@ -3,7 +3,7 @@ use crate::error::StorageError;
 use crate::models::plans::*;
 use crate::schema::plans;
 use diesel::insert_into;
-use diesel::prelude::*; // <-- Import Diesel prelude for query methods
+use diesel::RunQueryDsl; // This brings in QueryDsl and ExpressionMethods
 
 pub fn get_plans(connection: &mut PgPooledConnection) -> Result<Vec<Plan>, StorageError> {
     plans::table

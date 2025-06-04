@@ -8,6 +8,6 @@ CREATE TABLE base_plans (
     updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
 
     FOREIGN KEY (providers_id) references providers(providers_id),
-    UNIQUE (providers_id, base_plan_id)
+    UNIQUE (providers_id, event_base_id)
 );
 
