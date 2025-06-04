@@ -1,6 +1,6 @@
 CREATE TABLE plans (
-    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    base_plan_id uuid NOT NULL,    
+    plans_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    base_plans_id uuid NOT NULL,    
     event_plan_id bigint NOT NULL,
     plan_start_date TIMESTAMP NOT NULL,
     plan_end_date TIMESTAMP NOT NULL,
@@ -11,7 +11,7 @@ CREATE TABLE plans (
     updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
 
 
-    FOREIGN KEY (base_plan_id) references base_plans(id)
+    FOREIGN KEY (base_plans_id) references base_plans(base_plans_id)
     
   
 );

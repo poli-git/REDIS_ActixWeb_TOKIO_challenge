@@ -7,11 +7,12 @@ use uuid::Uuid;
 #[derive(
     Debug, Serialize, Deserialize, Associations, Identifiable, Queryable, PartialEq, Clone,
 )]
-#[diesel(belongs_to(BasePlan, foreign_key = id))]
+#[diesel(belongs_to(BasePlan, foreign_key = base_plans_id))]
 #[diesel(table_name = plans)]
+#[diesel(primary_key(plans_id))]
 pub struct Plan {
-    pub id: Uuid,
-    pub base_plan_id: Uuid,
+    pub plans_id: Uuid,
+    pub base_plans_id: Uuid,
     pub event_plan_id: i64,
     pub plan_start_date: chrono::NaiveDateTime,
     pub plan_end_date: chrono::NaiveDateTime,
@@ -25,8 +26,8 @@ pub struct Plan {
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone, Insertable)]
 #[diesel(table_name = plans)]
 pub struct NewPlan {
-    pub id: uuid::Uuid,
-    pub base_plan_id: uuid::Uuid,
+    pub plans_id: uuid::Uuid,
+    pub base_plans_id: uuid::Uuid,
     pub event_plan_id: i64,
     pub plan_start_date: chrono::NaiveDateTime,
     pub plan_end_date: chrono::NaiveDateTime,
@@ -40,8 +41,8 @@ impl From<NewPlan> for Plan {
         let now = Utc::now().naive_utc();
 
         Plan {
-            id: plan.id,
-            base_plan_id: plan.base_plan_id,
+            plans_id: plan.plans_id,
+            base_plans_id: plan.base_plans_id,
             event_plan_id: plan.event_plan_id,
             plan_start_date: plan.plan_start_date,
             plan_end_date: plan.plan_end_date,

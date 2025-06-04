@@ -1,8 +1,8 @@
 // @generated automatically by Diesel CLI.
 
 diesel::table! {
-    base_plans (id) {
-        id -> Uuid,
+    base_plans (base_plans_id) {
+        base_plans_id -> Uuid,
         providers_id -> Uuid,
         event_base_id -> Int8,
         title -> Text,
@@ -13,9 +13,9 @@ diesel::table! {
 }
 
 diesel::table! {
-    plans (id) {
-        id -> Uuid,
-        base_plan_id -> Uuid,
+    plans (plans_id) {
+        plans_id -> Uuid,
+        base_plans_id -> Uuid,
         event_plan_id -> Int8,
         plan_start_date -> Timestamp,
         plan_end_date -> Timestamp,
@@ -40,10 +40,10 @@ diesel::table! {
 }
 
 diesel::table! {
-    zones (id) {
-        id -> Uuid,
-        plan_id -> Uuid,
-        zone_id -> Int8,
+    zones (zones_id) {
+        zones_id -> Uuid,
+        plans_id -> Uuid,
+        event_zone_id -> Int8,
         name -> Text,
         numbered -> Bool,
         capacity -> Int8,
@@ -54,8 +54,8 @@ diesel::table! {
 }
 
 diesel::joinable!(base_plans -> providers (providers_id));
-diesel::joinable!(plans -> base_plans (base_plan_id));
-diesel::joinable!(zones -> plans (plan_id));
+diesel::joinable!(plans -> base_plans (base_plans_id));
+diesel::joinable!(zones -> plans (plans_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     base_plans,

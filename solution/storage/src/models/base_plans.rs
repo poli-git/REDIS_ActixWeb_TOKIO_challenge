@@ -9,28 +9,21 @@ use uuid::Uuid;
 )]
 #[diesel(belongs_to(Provider, foreign_key = providers_id))]
 #[diesel(table_name = base_plans)] // Updated attribute for Diesel
+#[diesel(primary_key(base_plans_id))]
 pub struct BasePlan {
-    pub id: Uuid,
-    #[serde(rename = "providers_id")]
-    #[serde(skip_serializing_if = "Uuid::is_nil")]
+    pub base_plans_id: Uuid,
     pub providers_id: Uuid,
     pub event_base_id: i64,
-    #[serde(rename = "title")]
-    #[serde(skip_serializing_if = "String::is_empty")]
     pub title: String,
-    #[serde(rename = "sell_mode")]
-    #[serde(skip_serializing_if = "String::is_empty")]
     pub sell_mode: String,
-    #[serde(rename = "created_at")]
     pub created_at: chrono::NaiveDateTime,
-    #[serde(rename = "updated_at")]
     pub updated_at: chrono::NaiveDateTime,
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone, Insertable)]
 #[diesel(table_name = base_plans)]
 pub struct NewBasePlan {
-    pub id: Uuid,
+    pub base_plans_id: Uuid,
     pub providers_id: Uuid,
     pub event_base_id: i64,
     pub title: String,
@@ -42,7 +35,7 @@ impl From<NewBasePlan> for BasePlan {
         let now = Utc::now().naive_utc();
 
         BasePlan {
-            id: base_plan.id,
+            base_plans_id: base_plan.base_plans_id,
             event_base_id: base_plan.event_base_id,
             title: base_plan.title,
             sell_mode: base_plan.sell_mode,

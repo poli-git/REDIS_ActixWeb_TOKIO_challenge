@@ -7,7 +7,8 @@ use crate::schema::base_plans::title;
 use crate::schema::base_plans::updated_at;
 use diesel::insert_into;
 use diesel::prelude::*;
-use diesel::RunQueryDsl; // This brings in QueryDsl and ExpressionMethods
+use diesel::RunQueryDsl;
+use uuid::Uuid; // This brings in QueryDsl and ExpressionMethods
 
 pub fn get_base_plans(connection: &mut PgPooledConnection) -> Result<Vec<BasePlan>, StorageError> {
     base_plans::table
@@ -29,5 +30,16 @@ pub fn add_event(
             updated_at.eq(diesel::dsl::now), // Use current time for updated_at
         )) // Handle conflict if the event already exists
         .get_result(connection)
+        .map_err(StorageError::from)
+}
+
+pub fn get_base_plan_by_id(
+    connection: &mut PgPooledConnection,
+    base_plans_id: Uuid,
+) -> Result<Option<BasePlan>, StorageError> {
+    base_plans::table
+        .filter(base_plans::base_plans_id.eq(base_plans_id))
+        .first::<BasePlan>(connection)
+        .optional()
         .map_err(StorageError::from)
 }

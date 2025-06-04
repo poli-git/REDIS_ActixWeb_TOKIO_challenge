@@ -1,5 +1,5 @@
 CREATE TABLE base_plans (
-    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    base_plans_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     providers_id uuid NOT NULL,
     event_base_id bigint NOT NULL,
     title TEXT NOT NULL,

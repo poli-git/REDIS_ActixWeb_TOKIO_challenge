@@ -1,7 +1,7 @@
 CREATE TABLE zones (
-    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    plan_id uuid NOT NULL,
-    zone_id bigint NOT NULL,
+    zones_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    plans_id uuid NOT NULL,
+    event_zone_id bigint NOT NULL,
     name TEXT NOT NULL,
     numbered BOOL NOT NULL DEFAULT FALSE,
     capacity bigint NOT NULL,
@@ -9,6 +9,6 @@ CREATE TABLE zones (
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
 
-    FOREIGN KEY (plan_id) references plans(id)
+    FOREIGN KEY (plans_id) references plans(plans_id)
     
 );
