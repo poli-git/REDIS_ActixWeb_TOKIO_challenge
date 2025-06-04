@@ -2,13 +2,15 @@ use crate::connections::db::PgPooledConnection;
 use crate::error::StorageError;
 use crate::models::providers::*;
 use crate::schema::providers;
-use diesel::RunQueryDsl;
 use diesel::prelude::*;
 use diesel::ExpressionMethods;
+use diesel::RunQueryDsl;
 
-pub fn get_active_providers(connection: &mut PgPooledConnection) -> Result<Vec<Provider>, StorageError> {
+pub fn get_active_providers(
+    connection: &mut PgPooledConnection,
+) -> Result<Vec<Provider>, StorageError> {
     providers::table
-        .filter(providers::is_active.eq(true)) 
+        .filter(providers::is_active.eq(true))
         .load::<Provider>(connection)
         .map_err(StorageError::from)
 }

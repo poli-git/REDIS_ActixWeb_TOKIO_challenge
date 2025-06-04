@@ -1,42 +1,34 @@
-use crate::models::base_plans::BasePlan;
+use bigdecimal::num_bigint::BigInt;
+use diesel::Identifiable;
+use diesel::Insertable;
+use diesel::Queryable;
+
 use crate::schema::plans;
 use chrono::prelude::*;
-use serde::{Deserialize, Serialize}; // Import both Serialize and Deserialize
+// Import both Serialize and Deserialize
 use uuid::Uuid;
 
-#[derive(
-    Debug, Serialize, Deserialize, Associations, Identifiable, Queryable, PartialEq, Clone,
-)]
-#[diesel(belongs_to(BasePlan, foreign_key = id))]
-#[diesel(table_name = plans)] // Updated attribute for Diesel
+#[derive(Debug, Queryable, Identifiable)]
+#[diesel(table_name = plans)]
 pub struct Plan {
     pub id: Uuid,
-    #[serde(rename = "base_plan_id")]
-    #[serde(skip_serializing_if = "Uuid::is_nil")]
     pub base_plan_id: Uuid,
-    pub plan_id: i64,
-    #[serde(rename = "plan_start_date")]
+    pub plan_id: BigInt,
     pub plan_start_date: chrono::NaiveDateTime,
-    #[serde(rename = "plan_end_date")]
     pub plan_end_date: chrono::NaiveDateTime,
-    #[serde(rename = "sell_from")]
     pub sell_from: Option<chrono::NaiveDateTime>,
-    #[serde(rename = "sell_to")]
     pub sell_to: Option<chrono::NaiveDateTime>,
-    #[serde(rename = "sold_out")]
     pub sold_out: bool,
-    #[serde(rename = "created_at")]
     pub created_at: chrono::NaiveDateTime,
-    #[serde(rename = "updated_at")]
     pub updated_at: chrono::NaiveDateTime,
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Clone, Insertable)]
+#[derive(Debug, Insertable)]
 #[diesel(table_name = plans)]
 pub struct NewPlan {
-    pub id: Uuid,
-    pub base_plan_id: Uuid,
-    pub plan_id: i64,
+    pub id: uuid::Uuid,
+    pub base_plan_id: uuid::Uuid,
+    pub plan_id: BigInt,
     pub plan_start_date: chrono::NaiveDateTime,
     pub plan_end_date: chrono::NaiveDateTime,
     pub sell_from: Option<chrono::NaiveDateTime>,

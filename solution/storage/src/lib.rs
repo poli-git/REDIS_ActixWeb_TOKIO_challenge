@@ -17,4 +17,5 @@ pub mod base_plan;
 pub mod connections;
 pub mod error;
 pub mod models;
+pub mod plan;
 pub mod provider;

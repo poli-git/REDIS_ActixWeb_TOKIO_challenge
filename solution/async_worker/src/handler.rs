@@ -6,7 +6,7 @@ use quick_xml::de::from_str;
 use serde::Deserialize;
 use storage::base_plan::add_event;
 use storage::models::base_plans::NewBasePlan;
-use storage::models::zones::NewZone;
+
 use uuid::Uuid;
 
 #[derive(Debug, Deserialize)]
@@ -135,7 +135,7 @@ pub async fn process_provider_events(provider_id: Uuid, provider_name: String, u
         }
     };
 
-    // Add each event to the database
+    // Add each BasePlan to the database
     for event in events {
         match add_event(&mut pg_pool, event) {
             Ok(inserted) => info!("Added base_plan: {} : {}", inserted.title, inserted.id),
