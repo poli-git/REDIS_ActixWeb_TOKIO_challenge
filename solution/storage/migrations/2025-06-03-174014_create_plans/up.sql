@@ -1,7 +1,7 @@
 CREATE TABLE plans (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     base_plan_id uuid NOT NULL,    
-    plan_id bigint NOT NULL,
+    event_plan_id bigint NOT NULL,
     plan_start_date TIMESTAMP NOT NULL,
     plan_end_date TIMESTAMP NOT NULL,
     sell_from TIMESTAMP NOT NULL,
