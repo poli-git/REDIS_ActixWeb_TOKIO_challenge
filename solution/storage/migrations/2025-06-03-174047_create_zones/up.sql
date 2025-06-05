@@ -1,7 +1,7 @@
 CREATE TABLE zones (
     zones_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     plans_id uuid NOT NULL,
-    event_zone_id bigint NOT NULL,
+    event_zone_id TEXT NOT NULL,
     name TEXT NOT NULL,
     numbered BOOL NOT NULL DEFAULT FALSE,
     capacity bigint NOT NULL,
