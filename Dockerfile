@@ -26,6 +26,9 @@ COPY src ./src
 COPY src/storage/migrations ./src/storage/migrations
 COPY .env ./
 
+# Run Diesel migrations
+RUN diesel migration run
+
 # Build async_worker and webapp binaries
 RUN cargo build --release --bin async_worker --bin webapp
 
