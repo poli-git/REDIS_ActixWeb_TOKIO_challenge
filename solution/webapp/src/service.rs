@@ -1,23 +1,21 @@
 use tokio::sync::Mutex;
 
-use actix_web::{web, HttpResponse, Responder};
-use actix_web::{web::Json, HttpRequest};
-use actix_web::{web::Path, Result};
+use actix_web::{web, HttpRequest, HttpResponse, Responder};
+use actix_web::{web::Json, web::Query, Result};
 use serde::{Deserialize, Serialize};
 use storage::connections::cache::is_healthy;
 use storage::connections::cache::Cache;
 
+#[derive(Deserialize)]
+pub struct SetRequest {
+    pub key: String,
+    pub value: String,
+    pub seconds: Option<usize>, // Optional expiration
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct HealthResponse {
     status: String,
-}
-
-pub struct CommonHealthResponse {
-    pub status: bool,
-    pub version: String,
-    pub environment: String,
-    pub db: bool,
-    pub cache: bool,
 }
 
 /// Basic healthcheck for services
@@ -37,5 +35,19 @@ pub async fn get_full_health(state: web::Data<Mutex<Cache>>) -> impl Responder {
         HttpResponse::Ok().body("Full health: OK")
     } else {
         HttpResponse::ServiceUnavailable().body("Full health: Redis unavailable")
+    }
+}
+
+// Updated /set endpoint to use GET and query parameters
+pub async fn set_key_value(
+    state: web::Data<Mutex<Cache>>,
+    req: Query<SetRequest>,
+) -> impl Responder {
+    let cache = state.lock().await;
+    let seconds = req.seconds.unwrap_or(3600); // default to 1 hour if not provided
+
+    match cache.set_ex(&req.key, &req.value, seconds).await {
+        Ok(_) => HttpResponse::Ok().body("Value set"),
+        Err(e) => HttpResponse::InternalServerError().body(format!("Redis error: {}", e)),
     }
 }
