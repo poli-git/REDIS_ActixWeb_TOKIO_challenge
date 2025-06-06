@@ -13,7 +13,7 @@ use uuid::Uuid;
 pub struct BasePlan {
     pub base_plans_id: Uuid,
     pub providers_id: Uuid,
-    pub event_base_id: i64,
+    pub event_base_id: String,
     pub title: String,
     pub sell_mode: String,
     pub created_at: chrono::NaiveDateTime,
@@ -25,7 +25,7 @@ pub struct BasePlan {
 pub struct NewBasePlan {
     pub base_plans_id: Uuid,
     pub providers_id: Uuid,
-    pub event_base_id: i64,
+    pub event_base_id: String,
     pub title: String,
     pub sell_mode: String,
 }

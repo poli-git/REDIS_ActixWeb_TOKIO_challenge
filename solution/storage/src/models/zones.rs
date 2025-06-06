@@ -13,7 +13,7 @@ use uuid::Uuid;
 pub struct Zone {
     pub zones_id: Uuid,
     pub plans_id: Uuid,
-    pub event_zone_id: i64,
+    pub event_zone_id: String,
     pub name: String,
     pub capacity: i64,
     pub price: f64,
@@ -27,7 +27,7 @@ pub struct Zone {
 pub struct NewZone {
     pub zones_id: Uuid,
     pub plans_id: Uuid,
-    pub event_zone_id: i64,
+    pub event_zone_id: String,
     pub name: String,
     pub capacity: i64,
     pub price: f64,

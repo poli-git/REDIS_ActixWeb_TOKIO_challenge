@@ -4,8 +4,8 @@ CREATE TABLE zones (
     event_zone_id TEXT NOT NULL,
     name TEXT NOT NULL,
     numbered BOOL NOT NULL DEFAULT FALSE,
-    capacity bigint NOT NULL,
-    price float NOT NULL,
+    capacity TEXT NOT NULL,
+    price TEXT NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
 

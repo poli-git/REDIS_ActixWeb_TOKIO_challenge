@@ -1,7 +1,6 @@
 use crate::models::base_plans::BasePlan;
 use crate::schema::plans;
 use chrono::prelude::*;
-use diesel::sql_types::Integer;
 use serde::{Deserialize, Serialize}; 
 use uuid::Uuid;
 
@@ -14,7 +13,7 @@ use uuid::Uuid;
 pub struct Plan {
     pub plans_id: Uuid,
     pub base_plans_id: Uuid,
-    pub event_plan_id: i32,
+    pub event_plan_id: String,
     pub plan_start_date: chrono::NaiveDateTime,
     pub plan_end_date: chrono::NaiveDateTime,
     pub sell_from: chrono::NaiveDateTime,
@@ -29,7 +28,7 @@ pub struct Plan {
 pub struct NewPlan {
     pub plans_id: uuid::Uuid,
     pub base_plans_id: uuid::Uuid,
-    pub event_plan_id: i32,
+    pub event_plan_id: String,
     pub plan_start_date: chrono::NaiveDateTime,
     pub plan_end_date: chrono::NaiveDateTime,
     pub sell_from: chrono::NaiveDateTime,
