@@ -1,11 +1,10 @@
 use actix_web::{web, App, HttpServer};
-
 use storage::connections::cache::Cache;
 use storage::error::StorageError;
-
 use anyhow::Result;
 use dotenv::dotenv;
-use std::sync::Mutex;
+use tokio::sync::Mutex;
+use webapp::service::get_full_health;
 use webapp::service::get_health;
 
 mod config;
@@ -26,14 +25,15 @@ async fn main() -> Result<()> {
     env_logger::init();
 
     let redis_conn = get_cache().await;
-    let redis_data = web::Data::new(Mutex::new(redis_conn));
+    let app_data = web::Data::new(Mutex::new(redis_conn));
 
     log::info!("Starting webapp on 0.0.0.0:8080");
 
     HttpServer::new(move || {
         App::new()
-            .app_data(redis_data.clone())
-            .route("/health", web::get().to(get_health))
+            .app_data(app_data.clone())
+            .service(web::resource("/health").route(web::get().to(get_health)))
+            .service(web::resource("/health/full").route(web::get().to(get_full_health)))
     })
     .bind(("127.0.0.1", 8080))?
     .run()
