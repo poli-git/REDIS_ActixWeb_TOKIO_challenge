@@ -24,11 +24,11 @@ pub struct Output {
 #[derive(Debug, Deserialize)]
 pub struct BasePlan {
     #[serde(rename = "@base_plan_id")]
-    pub base_plan_id: Option<u32>,
+    pub base_plan_id: Option<String>,
     #[serde(rename = "@sell_mode")]
     pub sell_mode: Option<String>,
     #[serde(rename = "@organizer_company_id")]
-    pub organizer_company_id: Option<u32>,
+    pub organizer_company_id: Option<String>,
     #[serde(rename = "@title")]
     pub title: String,
     #[serde(rename = "plan")]
@@ -42,7 +42,7 @@ pub struct Plan {
     #[serde(rename = "@plan_end_date")]
     pub plan_end_date: String,
     #[serde(rename = "@plan_id")]
-    pub plan_id: Option<u32>,
+    pub plan_id: Option<String>,
     #[serde(rename = "@sell_from")]
     pub sell_from: Option<String>,
     #[serde(rename = "@sell_to")]
@@ -56,11 +56,11 @@ pub struct Plan {
 #[derive(Debug, Deserialize)]
 pub struct Zone {
     #[serde(rename = "@zone_id")]
-    pub zone_id: Option<u32>,
+    pub zone_id: Option<String>,
     #[serde(rename = "@capacity")]
-    pub capacity: Option<u32>,
+    pub capacity: Option<String>,
     #[serde(rename = "@price")]
-    pub price: Option<f32>,
+    pub price: Option<String>,
     #[serde(rename = "@name")]
     pub name: Option<String>,
     #[serde(rename = "@numbered")]
@@ -113,10 +113,11 @@ pub async fn process_provider_events(provider_id: Uuid, provider_name: String, u
         .base_plan
         .into_iter()
         .flat_map(|bp| {
-            bp.plans.into_iter().map(move |plan| NewBasePlan {
-                id: uuid::Uuid::new_v4(),
+            let base_plan_id = bp.base_plan_id.clone().unwrap_or_default();
+            bp.plans.into_iter().map(move |_plan| NewBasePlan {
+                base_plans_id: uuid::Uuid::new_v4(),
                 providers_id: provider_id,
-                base_plan_id: bp.base_plan_id.map(|id| id as i64).unwrap_or_default(),
+                event_base_id: base_plan_id.clone(),
                 title: bp.title.clone(),
                 sell_mode: bp.sell_mode.clone().unwrap_or_default(),
             })
@@ -138,7 +139,10 @@ pub async fn process_provider_events(provider_id: Uuid, provider_name: String, u
     // Add each BasePlan to the database
     for event in events {
         match add_event(&mut pg_pool, event) {
-            Ok(inserted) => info!("Added base_plan: {} : {}", inserted.title, inserted.id),
+            Ok(inserted) => info!(
+                "Added base_plan: {} : {}",
+                inserted.title, inserted.base_plans_id
+            ),
             Err(e) => error!("Failed to add base_plan: {}", e),
         }
     }

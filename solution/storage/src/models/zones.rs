@@ -15,8 +15,8 @@ pub struct Zone {
     pub plans_id: Uuid,
     pub event_zone_id: String,
     pub name: String,
-    pub capacity: i64,
-    pub price: f64,
+    pub capacity: String,
+    pub price: String,
     pub numbered: bool,
     pub created_at: chrono::NaiveDateTime,
     pub updated_at: chrono::NaiveDateTime,
@@ -29,8 +29,8 @@ pub struct NewZone {
     pub plans_id: Uuid,
     pub event_zone_id: String,
     pub name: String,
-    pub capacity: i64,
-    pub price: f64,
+    pub capacity: String,
+    pub price: String,
     pub numbered: bool,
 }
 

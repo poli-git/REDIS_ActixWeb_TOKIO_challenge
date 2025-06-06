@@ -1,7 +1,7 @@
 use crate::models::base_plans::BasePlan;
 use crate::schema::plans;
 use chrono::prelude::*;
-use serde::{Deserialize, Serialize}; 
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 #[derive(
