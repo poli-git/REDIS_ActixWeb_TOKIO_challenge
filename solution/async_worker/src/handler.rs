@@ -27,14 +27,14 @@ pub async fn process_provider_events(provider_id: Uuid, provider_name: String, u
         }
     };
 
-    // Status
+    // Validate status
     let status = response.status();
     if !status.is_success() {
         error!("HTTP error {} from {}", status, url);
         return;
     }
 
-    // Fetch the XML body as text
+    // Fetch the XML body
     let xml_body = match response.text().await {
         Ok(body) => body,
         Err(e) => {
@@ -54,7 +54,7 @@ pub async fn process_provider_events(provider_id: Uuid, provider_name: String, u
     // Clone base_plan so it can be used multiple times
     let base_plans = plan_list.output.base_plan.clone();
 
-    // Map PlanList into Vec<NewEvent>
+    // Map PlanList into Vec<NewBasePlan>
     let events: Vec<NewBasePlan> = base_plans
         .iter()
         .flat_map(|bp| {
@@ -106,7 +106,7 @@ pub async fn process_provider_events(provider_id: Uuid, provider_name: String, u
             }
         };
 
-        // Insert each plan for this base plan
+        // Insert each plan for this BasePlan
         for plan in bp.plans {
             let new_plan = NewPlan {
                 plans_id: uuid::Uuid::new_v4(),
