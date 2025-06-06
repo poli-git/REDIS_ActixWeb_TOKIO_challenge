@@ -18,6 +18,11 @@ pub struct HealthResponse {
     status: String,
 }
 
+#[derive(Deserialize)]
+pub struct GetRequest {
+    pub key: String,
+}
+
 /// Basic healthcheck for services
 pub async fn get_health(_req: HttpRequest) -> Result<Json<HealthResponse>> {
     Ok(Json(HealthResponse {
@@ -48,6 +53,17 @@ pub async fn set_key_value(
 
     match cache.set_ex(&req.key, &req.value, seconds).await {
         Ok(_) => HttpResponse::Ok().body("Value set"),
+        Err(e) => HttpResponse::InternalServerError().body(format!("Redis error: {}", e)),
+    }
+}
+
+pub async fn get_key_value(
+    state: web::Data<Mutex<Cache>>,
+    req: Query<GetRequest>,
+) -> impl Responder {
+    let cache = state.lock().await;
+    match cache.get(req.key.clone()).await {
+        Ok(val) => HttpResponse::Ok().body(val),        
         Err(e) => HttpResponse::InternalServerError().body(format!("Redis error: {}", e)),
     }
 }

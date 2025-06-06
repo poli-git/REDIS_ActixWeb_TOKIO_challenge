@@ -6,6 +6,7 @@ use storage::error::StorageError;
 use tokio::sync::Mutex;
 use webapp::service::get_full_health;
 use webapp::service::get_health;
+use webapp::service::get_key_value;
 use webapp::service::set_key_value;
 
 mod config;
@@ -36,6 +37,7 @@ async fn main() -> Result<()> {
             .service(web::resource("/health").route(web::get().to(get_health)))
             .service(web::resource("/health/full").route(web::get().to(get_full_health)))
             .service(web::resource("/set").route(web::get().to(set_key_value)))
+            .service(web::resource("/get").route(web::get().to(get_key_value)))
     })
     .bind(("127.0.0.1", 8080))?
     .run()
