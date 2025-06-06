@@ -10,8 +10,7 @@ CREATE TABLE plans (
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
 
-
-    FOREIGN KEY (base_plans_id) references base_plans(base_plans_id)
-    
+    FOREIGN KEY (base_plans_id) references base_plans(base_plans_id),
+    UNIQUE (base_plans_id, event_plan_id)    
   
 );
