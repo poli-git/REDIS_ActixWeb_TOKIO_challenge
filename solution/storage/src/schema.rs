@@ -57,9 +57,4 @@ diesel::joinable!(base_plans -> providers (providers_id));
 diesel::joinable!(plans -> base_plans (base_plans_id));
 diesel::joinable!(zones -> plans (plans_id));
 
-diesel::allow_tables_to_appear_in_same_query!(
-    base_plans,
-    plans,
-    providers,
-    zones,
-);
+diesel::allow_tables_to_appear_in_same_query!(base_plans, plans, providers, zones,);

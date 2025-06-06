@@ -1,6 +1,5 @@
 use serde::Deserialize;
 
-
 #[derive(Debug, Deserialize)]
 #[serde(rename = "planList")]
 pub struct PlanList {
