@@ -4,7 +4,7 @@ use storage::connections::db::establish_connection;
 use log::{error, info};
 use quick_xml::de::from_str;
 use serde::Deserialize;
-use storage::base_plan::add_event;
+use storage::base_plan::add_base_plan;
 use storage::models::base_plans::NewBasePlan;
 
 use uuid::Uuid;
@@ -138,7 +138,7 @@ pub async fn process_provider_events(provider_id: Uuid, provider_name: String, u
 
     // Add each BasePlan to the database
     for event in events {
-        match add_event(&mut pg_pool, event) {
+        match add_base_plan(&mut pg_pool, event) {
             Ok(inserted) => info!(
                 "Added base_plan: {} : {}",
                 inserted.title, inserted.base_plans_id

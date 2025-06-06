@@ -16,7 +16,7 @@ pub fn get_base_plans(connection: &mut PgPooledConnection) -> Result<Vec<BasePla
         .map_err(StorageError::from)
 }
 
-pub fn add_event(
+pub fn add_base_plan(
     connection: &mut PgPooledConnection,
     new_base_plan: NewBasePlan,
 ) -> Result<BasePlan, StorageError> {

@@ -1,14 +1,14 @@
 use crate::models::providers::Provider;
 use crate::schema::base_plans;
 use chrono::prelude::*;
-use serde::{Deserialize, Serialize}; // Import both Serialize and Deserialize
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 #[derive(
     Debug, Serialize, Deserialize, Associations, Identifiable, Queryable, PartialEq, Clone,
 )]
 #[diesel(belongs_to(Provider, foreign_key = providers_id))]
-#[diesel(table_name = base_plans)] // Updated attribute for Diesel
+#[diesel(table_name = base_plans)]
 #[diesel(primary_key(base_plans_id))]
 pub struct BasePlan {
     pub base_plans_id: Uuid,
