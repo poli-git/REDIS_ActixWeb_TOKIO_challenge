@@ -1,3 +1,4 @@
+use async_worker::xml_models::PlanList;
 use reqwest::Client;
 use storage::connections::db::establish_connection;
 
@@ -10,7 +11,7 @@ use storage::models::plans::NewPlan;
 use storage::plan::add_plan;
 
 use uuid::Uuid;
-
+/* 
 #[derive(Debug, Deserialize)]
 #[serde(rename = "planList")]
 pub struct PlanList {
@@ -67,7 +68,7 @@ pub struct Zone {
     pub name: Option<String>,
     #[serde(rename = "@numbered")]
     pub numbered: Option<bool>,
-}
+} */
 
 pub async fn process_provider_events(provider_id: Uuid, provider_name: String, url: String) {
     info!(
