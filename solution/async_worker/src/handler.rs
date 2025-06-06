@@ -10,7 +10,6 @@ use storage::models::plans::NewPlan;
 use storage::plan::add_plan;
 use uuid::Uuid;
 
-
 pub async fn process_provider_events(provider_id: Uuid, provider_name: String, url: String) {
     info!(
         "Fetching events for provider: {} - {}",

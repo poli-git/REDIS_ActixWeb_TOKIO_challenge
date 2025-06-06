@@ -1,5 +1,4 @@
 use dotenv::dotenv;
-use envy;
 use serde::Deserialize;
 
 fn async_worker_interval_sec() -> u32 {
