@@ -1,32 +1,43 @@
-use actix_web::{web, App, HttpResponse, HttpServer, Responder};
-use redis::Commands;
-use storage::connections::cache::connect;
+use actix_web::{web, App, HttpServer};
 
-async fn get_redis_keys() -> impl Responder {
-    let mut conn = match connect() {
-        Ok(c) => c,
-        Err(e) => {
-            return HttpResponse::InternalServerError()
-                .body(format!("Redis connection error: {}", e))
-        }
-    };
+use storage::connections::cache::Cache;
+use storage::error::StorageError;
 
-    let keys: redis::RedisResult<Vec<String>> = conn.keys("*");
-    match keys {
-        Ok(keys) => HttpResponse::Ok().json(keys),
-        Err(e) => HttpResponse::InternalServerError().body(format!("Redis error: {}", e)),
-    }
+use anyhow::Result;
+use dotenv::dotenv;
+use std::sync::Mutex;
+use webapp::service::get_health;
+
+mod config;
+
+pub async fn get_cache() -> Cache {
+    Cache::new()
+        .await
+        .map_err(|e| {
+            log::error!("Failed to connect to Redis: {}", e);
+            StorageError::from(e)
+        })
+        .unwrap()
 }
 
 #[actix_web::main]
-async fn main() -> std::io::Result<()> {
-    // Initialize dotenv and logging
-    dotenv::dotenv().ok();
+async fn main() -> Result<()> {
+    dotenv().ok();
     env_logger::init();
 
+    let redis_conn = get_cache().await;
+    let redis_data = web::Data::new(Mutex::new(redis_conn));
+
     log::info!("Starting webapp on 0.0.0.0:8080");
-    HttpServer::new(|| App::new().route("/redis-keys", web::get().to(get_redis_keys)))
-        .bind(("0.0.0.0", 8081))?
-        .run()
-        .await
+
+    HttpServer::new(move || {
+        App::new()
+            .app_data(redis_data.clone())
+            .route("/health", web::get().to(get_health))
+    })
+    .bind(("127.0.0.1", 8080))?
+    .run()
+    .await?;
+
+    Ok(())
 }

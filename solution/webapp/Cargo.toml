@@ -4,12 +4,15 @@ name = "webapp"
 version = "0.1.0"
 edition = "2021"
 
-
-
 [dependencies]
 actix-web = "4.11.0"
-redis = "0.31.0"
-storage = { path = "../storage" }
+anyhow = "1.0.98"
 dotenv = "*"
 env_logger = "0.11.8"
+envy = "0.4"
 log = "0.4"
+redis = "0.32.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_derive = "*"
+serde_json = "*"
+storage = { path = "../storage" }
