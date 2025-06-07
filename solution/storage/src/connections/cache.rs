@@ -212,7 +212,6 @@ impl Cache {
 }
 
 /// Queries the redis PING command to determine health
-#[allow(clippy::redundant_pattern_matching)] // FIXME
 pub async fn is_healthy(cache: &Cache) -> bool {
     let mut conn = cache.conn.clone();
     // The redis command PING should return PONG, but we don't care what's returned as long as we get something back.

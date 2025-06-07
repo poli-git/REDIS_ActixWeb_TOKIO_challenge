@@ -11,7 +11,7 @@ pub fn get_plans(connection: &mut PgPooledConnection) -> Result<Vec<Plan>, Stora
         .map_err(StorageError::from)
 }
 
-pub fn add_plan(
+pub fn add_or_update_plan(
     connection: &mut PgPooledConnection,
     new_plan: NewPlan,
 ) -> Result<Plan, StorageError> {

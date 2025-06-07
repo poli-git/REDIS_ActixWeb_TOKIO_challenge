@@ -4,10 +4,10 @@ use storage::connections::db::establish_connection;
 
 use log::{error, info};
 use quick_xml::de::from_str;
-use storage::base_plan::add_base_plan;
+use storage::base_plan::add_or_update_base_plan;
 use storage::models::base_plans::NewBasePlan;
 use storage::models::plans::NewPlan;
-use storage::plan::add_plan;
+use storage::plan::add_or_update_plan;
 use uuid::Uuid;
 
 pub async fn process_provider_events(provider_id: Uuid, provider_name: String, url: String) {
@@ -91,7 +91,7 @@ pub async fn process_provider_events(provider_id: Uuid, provider_name: String, u
             sell_mode: bp.sell_mode.clone().unwrap_or_default(),
         };
 
-        let inserted_base_plan = match add_base_plan(&mut pg_pool, new_base_plan) {
+        let inserted_base_plan = match add_or_update_base_plan(&mut pg_pool, new_base_plan) {
             Ok(inserted) => {
                 info!(
                     "Added base_plan: {} : {}",
@@ -138,7 +138,7 @@ pub async fn process_provider_events(provider_id: Uuid, provider_name: String, u
                 sold_out: plan.sold_out.unwrap_or(false),
             };
 
-            match add_plan(&mut pg_pool, new_plan) {
+            match add_or_update_plan(&mut pg_pool, new_plan) {
                 Ok(inserted_plan) => info!(
                     "Added plan: {} : {}",
                     inserted_plan.event_plan_id, inserted_plan.plans_id

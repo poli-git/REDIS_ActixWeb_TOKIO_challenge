@@ -51,6 +51,9 @@ pub async fn set_key_value(
     let cache = state.lock().await;
     let seconds = req.seconds.unwrap_or(3600); // default to 1 hour if not provided
 
+    let _res = cache.zrange_by_score("12".to_string(), "-inf", "+inf").await; 
+    // Example usage of zrange_by_score, can be removed if not needed
+
     match cache.set_ex(&req.key, &req.value, seconds).await {
         Ok(_) => HttpResponse::Ok().body("Value set"),
         Err(e) => HttpResponse::InternalServerError().body(format!("Redis error: {}", e)),
