@@ -253,10 +253,7 @@ pub mod tests {
         let key = test_key();
         let value = "131178";
         let seconds = 600;
-        cache
-            .set_ex(&key.clone(), value, seconds)
-            .await
-            .unwrap();
+        cache.set_ex(&key.clone(), value, seconds).await.unwrap();
         let get_value = cache.get(key).await.unwrap();
         assert_eq!(value, get_value);
     }
@@ -316,7 +313,10 @@ pub mod tests {
         cache.zrem(key.clone(), value).await.unwrap();
 
         let fetched = cache.zrange_by_score(key.clone(), 0, 2).await.unwrap();
-        assert!(fetched.is_empty(), "Expected no items in the sorted set after removal");
+        assert!(
+            fetched.is_empty(),
+            "Expected no items in the sorted set after removal"
+        );
     }
 
     #[tokio::test]
