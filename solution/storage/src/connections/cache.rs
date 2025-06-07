@@ -34,14 +34,6 @@ impl Cache {
             .map_err(|_| CacheError::NotFound(key))
     }
 
-    /// Get a u64 value by key from redis.
-    pub async fn get_as_u64(&self, key: String) -> CacheResult<u64> {
-        let mut conn = self.conn.clone();
-        conn.get(key.clone())
-            .await
-            .map_err(|_| CacheError::NotFound(key.clone()))
-    }
-
     /// Get a specific value by a key formated like:
     /// format!("idempotency-key:{val:?}", val=idempotency_key.to_string());
     /// format!("accounts:{val:}", val=account_id.to_string());
@@ -60,20 +52,6 @@ impl Cache {
             .map_err(|_| CacheError::CannotSet(key))
     }
 
-    /// Set a key to a provided value if it doesn't already exist.
-    /// Return Ok() for either condition.
-    /// TODO: consider returning u8 or bool to denote a successful set
-    pub async fn set_nx(
-        &self,
-        key: &str,
-        value: impl ToRedisArgs + Send + Sync,
-    ) -> CacheResult<()> {
-        let mut conn = self.conn.clone();
-        conn.set_nx(key, value)
-            .await
-            .map_err(|_| CacheError::CannotSetNx(key.into()))
-    }
-
     /// Set a key to a provided value with expiration of a key
     pub async fn set_ex(
         &self,
@@ -87,27 +65,6 @@ impl Cache {
             .map_err(|_| CacheError::CannotSetEx(key.into()))
     }
 
-    /// Return current value of a key then overwrite that value.
-    pub async fn getset(
-        &self,
-        key: &str,
-        value: impl ToRedisArgs + Send + Sync,
-    ) -> CacheResult<String> {
-        let mut conn = self.conn.clone();
-        conn.getset(key, value)
-            .await
-            .map_err(|_| CacheError::CannotGetSet(key.into()))
-    }
-
-    /// Delete a value by key from redis
-    /// redis-rs returns Ok() even if the key does not exist
-    pub async fn delete(&self, key: String) -> CacheResult<()> {
-        let mut conn = self.conn.clone();
-        conn.del(key.clone())
-            .await
-            .map_err(|_| CacheError::CannotDelete(key))
-    }
-
     /// Determine if a key exists in the store
     /// redis-rs returns Ok() even if the key does not exist
     pub async fn exists(&self, key: String) -> CacheResult<bool> {
@@ -117,25 +74,6 @@ impl Cache {
             .await
             .map_err(|_| CacheError::CannotExists(key))?;
         Ok(exists == 1)
-    }
-
-    /// Sets expiration for a cache entry at given key.
-    pub async fn expire(&self, key: String, seconds: usize) -> CacheResult<()> {
-        let mut conn = self.conn.clone();
-        conn.expire(key.clone(), seconds)
-            .await
-            .map_err(|_| CacheError::CannotExpire(key))?;
-        Ok(())
-    }
-
-    /// Increment a value stored at the given key. If the value does not exist, it will be set to the delta.
-    pub async fn increment(&self, key: &str, delta: u64) -> CacheResult<u64> {
-        let mut conn = self.conn.clone();
-        let incremented = conn
-            .incr(key, delta)
-            .await
-            .map_err(|e| CacheError::CannotIncrement(key.to_string(), e.to_string()))?;
-        Ok(incremented)
     }
 
     /// Scan for any keys that match the given pattern.
@@ -169,33 +107,13 @@ impl Cache {
         Ok(value)
     }
 
-    /// Set a key as being watched.
-    pub async fn watch(&self, key: &str) -> CacheResult<()> {
-        let mut conn = self.conn.clone();
-        redis::cmd("WATCH")
-            .arg(key)
-            .query_async(&mut conn)
-            .await
-            .map_err(|_| CacheError::CannotWatch(key.to_string()))
-    }
-
-    /// Remove the watch on a key.
-    pub async fn unwatch(&self, key: &str) -> CacheResult<()> {
-        let mut conn = self.conn.clone();
-        redis::cmd("UNWATCH")
-            .arg(key)
-            .query_async(&mut conn)
-            .await
-            .map_err(|_| CacheError::CannotUnwatch(key.to_string()))
-    }
-
     /// Adds an item to an ordered set at the given key
     pub async fn zadd(&self, key: String, value: String, score: i64) -> CacheResult<()> {
         let mut conn = self.conn.clone();
         conn.zadd(&key, value, score)
             .await
-            .map_err(|_| CacheError::CannotZadd(key))?;
-        Ok(())
+            .map(|_: i32| ()) // Explicitly map the Redis result to ()
+            .map_err(|_| CacheError::CannotZadd(key))
     }
 
     /// Removes an item from an ordered set matching the given key and value.
@@ -203,8 +121,8 @@ impl Cache {
         let mut conn = self.conn.clone();
         conn.zrem(&key, value)
             .await
-            .map_err(|_| CacheError::CannotZrem(key))?;
-        Ok(())
+            .map(|_: i32| ()) // Explicitly map the Redis result to ()
+            .map_err(|_| CacheError::CannotZrem(key))
     }
 
     /// Returns the specified range of elements in the sorted set stored at specific `key`.
@@ -291,15 +209,6 @@ impl Cache {
             .await
             .map_err(|e| CacheError::CannotZscan(e.to_string()))
     }
-
-    /// Renames key to new_key. It returns an error when key does not exist.
-    pub async fn rename(&self, key: String, new_key: String) -> CacheResult<()> {
-        let mut conn = self.conn.clone();
-        conn.rename(key.clone(), new_key.clone())
-            .await
-            .map_err(|_| CacheError::CannotRename(key, new_key))?;
-        Ok(())
-    }
 }
 
 /// Queries the redis PING command to determine health
@@ -340,41 +249,6 @@ pub mod tests {
     }
 
     #[tokio::test]
-    async fn it_getset() {
-        let cache = get_cache().await;
-        let key = test_key();
-
-        let value = "9";
-        cache.set(key.clone(), value.into()).await.unwrap();
-
-        let updated_value = "4";
-        let get_previous_value = cache.getset(&key.clone(), updated_value).await.unwrap();
-
-        let get_updated_value = cache.get(key).await.unwrap();
-
-        assert_eq!(get_previous_value, value);
-        assert_eq!(get_updated_value, updated_value);
-    }
-
-    #[tokio::test]
-    async fn it_sets_nx() {
-        let cache = get_cache().await;
-        let key = test_key();
-        let value_1 = "1";
-        let value_2 = "2";
-
-        // validate that it sets a new value
-        cache.set_nx(&key.clone(), value_1.clone()).await.unwrap();
-        let get_value_1 = cache.get(key.clone()).await.unwrap();
-        assert_eq!(get_value_1, value_1);
-
-        // validate that values don't overwrite
-        cache.set_nx(&key.clone(), value_2.clone()).await.unwrap();
-        let get_value_1 = cache.get(key).await.unwrap();
-        assert_eq!(get_value_1, value_1);
-    }
-
-    #[tokio::test]
     async fn it_sets_ex() {
         let cache = get_cache().await;
         let key = test_key();
@@ -386,17 +260,6 @@ pub mod tests {
             .unwrap();
         let get_value = cache.get(key).await.unwrap();
         assert_eq!(value, get_value);
-    }
-
-    #[tokio::test]
-    async fn it_increments_a_value() {
-        let cache = get_cache().await;
-        let key = test_key();
-        let incremented = cache.increment(&key, 1).await.unwrap();
-        assert_eq!(incremented, 1);
-
-        let incremented = cache.increment(&key, 2).await.unwrap();
-        assert_eq!(incremented, 3);
     }
 
     #[tokio::test]
@@ -594,24 +457,5 @@ pub mod tests {
         }
         // All records were properly scanned
         assert_eq!(index, 0);
-    }
-
-    #[tokio::test]
-    async fn it_renames() {
-        let cache = get_cache().await;
-        let key = test_key();
-
-        let value = "1311";
-        cache.set(key.clone(), value.into()).await.unwrap();
-
-        let updated_key = test_key();
-
-        cache
-            .rename(key.clone(), updated_key.clone())
-            .await
-            .unwrap();
-        let get_value = cache.get(updated_key).await.unwrap();
-
-        assert_eq!(get_value, value);
     }
 }

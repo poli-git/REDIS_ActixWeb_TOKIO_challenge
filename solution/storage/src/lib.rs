@@ -1,7 +1,6 @@
 #[macro_use]
 extern crate serde_derive;
 extern crate envy;
-extern crate failure;
 extern crate lazy_static;
 #[macro_use]
 extern crate diesel;

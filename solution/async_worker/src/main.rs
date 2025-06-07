@@ -11,7 +11,7 @@ async fn main() {
     dotenv::dotenv().ok();
     env_logger::init();
     let config = config::build();
-    let interval_secs = config.async_worker_interval_sec_s;
+    let interval_secs = config.async_worker_interval_sec;
 
     log::info!("Starting async_worker...");
 

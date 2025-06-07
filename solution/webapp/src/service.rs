@@ -34,7 +34,7 @@ pub async fn get_health(_req: HttpRequest) -> Result<Json<HealthResponse>> {
 /// dependent services.
 pub async fn get_full_health(state: web::Data<Mutex<Cache>>) -> impl Responder {
     let cache = state.lock().await;
-    let cache_healthy = is_healthy(&*cache).await;
+    let cache_healthy = is_healthy(&cache).await;
 
     if cache_healthy {
         HttpResponse::Ok().body("Full health: OK")
@@ -63,7 +63,7 @@ pub async fn get_key_value(
 ) -> impl Responder {
     let cache = state.lock().await;
     match cache.get(req.key.clone()).await {
-        Ok(val) => HttpResponse::Ok().body(val),        
+        Ok(val) => HttpResponse::Ok().body(val),
         Err(e) => HttpResponse::InternalServerError().body(format!("Redis error: {}", e)),
     }
 }

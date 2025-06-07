@@ -1,9 +1,9 @@
 use diesel::result::Error as DieselError;
-use failure::Fail;
 use log::{debug, error};
 use redis::{ErrorKind, RedisError};
 use std::error::Error;
 use std::fmt;
+use thiserror::Error;
 
 #[derive(Debug)]
 pub enum StorageError {
@@ -41,112 +41,111 @@ impl From<DieselError> for StorageError {
     }
 }
 
-#[derive(Clone, strum_macros::EnumMessage, Debug, Fail, PartialEq)]
+#[derive(Clone, strum_macros::EnumMessage, Debug, Error, PartialEq)]
 pub enum CacheError {
-    #[fail(display = "Cannot delete key {}", _0)]
+    #[error("Cannot delete key {}", _0)]
     CannotDelete(String),
 
-    #[fail(display = "Cannot check for exists on key {}", _0)]
+    #[error("Cannot check for exists on key {}", _0)]
     #[strum(message = "CannotCheckKeyError")]
     CannotExists(String),
 
-    #[fail(display = "Cannot set expiry for key {}", _0)]
+    #[error("Cannot set expiry for key {}", _0)]
     CannotExpire(String),
 
-    #[fail(display = "Cannot get and delete for key {}", _0)]
+    #[error("Cannot get and delete for key {}", _0)]
     CannotGetDelete(String),
 
-    #[fail(display = "Cannot getset key {}", _0)]
+    #[error("Cannot getset key {}", _0)]
     CannotGetSet(String),
 
-    #[fail(display = "Cannot get transaction: {}", _0)]
+    #[error("Cannot get transaction: {}", _0)]
     CannotGetTransaction(String),
 
-    #[fail(display = "Cannot increment value at key {} {}", _0, _1)]
+    #[error("Cannot increment value at key {} {}", _0, _1)]
     CannotIncrement(String, String),
 
-    #[fail(display = "Cannot rename key {} with new key {}", _0, _1)]
+    #[error("Cannot rename key {} with new key {}", _0, _1)]
     CannotRename(String, String),
 
-    #[fail(display = "Cannot get mget: {}", _0)]
+    #[error("Cannot get mget: {}", _0)]
     CannotMget(String),
 
-    #[fail(display = "Cannot parse order {} {}", _0, _1)]
+    #[error("Cannot parse order {} {}", _0, _1)]
     CannotParse(String, String),
 
-    #[fail(display = "Cannot remove transaction: {}", _0)]
+    #[error("Cannot remove transaction: {}", _0)]
     CannotRemoveTransaction(String),
 
-    #[fail(display = "Cannot save transaction: {}", _0)]
+    #[error("Cannot save transaction: {}", _0)]
     CannotSaveTransaction(String),
 
-    #[fail(display = "Cannot scan with pattern {}", _0)]
+    #[error("Cannot scan with pattern {}", _0)]
     CannotScan(String),
 
-    #[fail(display = "Cannot set key {}", _0)]
+    #[error("Cannot set key {}", _0)]
     CannotSet(String),
 
-    #[fail(display = "Cannot set_nx key {}", _0)]
+    #[error("Cannot set_nx key {}", _0)]
     CannotSetNx(String),
 
-    #[fail(display = "Cannot set_ex key {}", _0)]
+    #[error("Cannot set_ex key {}", _0)]
     CannotSetEx(String),
 
-    #[fail(display = "Cannot unwatch key {}", _0)]
+    #[error("Cannot unwatch key {}", _0)]
     CannotUnwatch(String),
 
-    #[fail(display = "Cannot watch key {}", _0)]
+    #[error("Cannot watch key {}", _0)]
     CannotWatch(String),
 
-    #[fail(display = "Cannot zadd key {}", _0)]
+    #[error("Cannot zadd key {}", _0)]
     CannotZadd(String),
 
-    #[fail(display = "Cannot zcount with key {}", _0)]
+    #[error("Cannot zcount with key {}", _0)]
     CannotZcount(String),
 
-    #[fail(display = "Cannot zcard with key {}", _0)]
+    #[error("Cannot zcard with key {}", _0)]
     CannotZcard(String),
 
-    #[fail(display = "Cannot zscan with key {}", _0)]
+    #[error("Cannot zscan with key {}", _0)]
     CannotZscan(String),
 
-    #[fail(display = "Cannot zrangebyscore with key {}", _0)]
+    #[error("Cannot zrangebyscore with key {}", _0)]
     CannotZrangeByScore(String),
 
-    #[fail(display = "Cannot zrange with key {}", _0)]
+    #[error("Cannot zrange with key {}", _0)]
     CannotZrange(String),
 
-    #[fail(display = "Cannot zrem key {}", _0)]
+    #[error("Cannot zrem key {}", _0)]
     CannotZrem(String),
 
-    #[fail(display = "Cannot zrem with key {} and value {}", _0, _1)]
+    #[error("Cannot zrem with key {} and value {}", _0, _1)]
     CannotRemoveZelement(String, String),
 
-    #[fail(display = "Error {}", _0)]
+    #[error("Error {}", _0)]
     Error(String),
 
-    #[fail(display = "Cannot parse URL")]
+    #[error("Cannot parse URL")]
     CannotParseUrl,
 
-    #[fail(display = "Not connected")]
+    #[error("Not connected")]
     NotConnected,
 
-    #[fail(display = "Cannot locate key {}", _0)]
+    #[error("Cannot locate key {}", _0)]
     #[strum(message = "NotFoundError")]
     NotFound(String),
 
-    #[fail(display = "Cannot find element {} in order with key: {}", _0, _1)]
+    #[error("Cannot find element {} in order with key: {}", _0, _1)]
     #[strum(message = "NotFoundOrderElement")]
     NotFoundOrderElement(String, String),
 
-    #[fail(display = "Unknown error: {}", _0)]
+    #[error("Unknown error: {}", _0)]
     Unknown(String),
 }
 
 /// Utility to make transforming a LibError into an ErrorResponse
 // use crate::error_response::ErrorResponse;
 // use crate::error_response::CodedError;
-
 impl From<RedisError> for CacheError {
     fn from(err: RedisError) -> CacheError {
         let message = format!("{}", err);

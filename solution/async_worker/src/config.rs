@@ -8,7 +8,7 @@ fn async_worker_interval_sec() -> u32 {
 #[derive(Deserialize)]
 pub struct Config {
     #[serde(default = "async_worker_interval_sec")]
-    pub async_worker_interval_sec_s: u32,
+    pub async_worker_interval_sec: u32,
 }
 
 pub fn build() -> Config {

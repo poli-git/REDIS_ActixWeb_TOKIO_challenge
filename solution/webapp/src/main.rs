@@ -10,8 +10,9 @@ use webapp::service::get_key_value;
 use webapp::service::set_key_value;
 
 mod config;
+mod service;
 
-pub async fn get_cache() -> Cache {
+async fn get_cache() -> Cache {
     Cache::new()
         .await
         .map_err(|e| {
@@ -25,11 +26,12 @@ pub async fn get_cache() -> Cache {
 async fn main() -> Result<()> {
     dotenv().ok();
     env_logger::init();
+    let config = config::build();
 
     let redis_conn = get_cache().await;
     let app_data = web::Data::new(Mutex::new(redis_conn));
 
-    log::info!("Starting webapp on 0.0.0.0:8080");
+    log::info!("Starting webapp on {}", config.web_app_server);
 
     HttpServer::new(move || {
         App::new()
@@ -39,7 +41,18 @@ async fn main() -> Result<()> {
             .service(web::resource("/set").route(web::get().to(set_key_value)))
             .service(web::resource("/get").route(web::get().to(get_key_value)))
     })
-    .bind(("127.0.0.1", 8080))?
+    .client_disconnect_timeout(std::time::Duration::from_millis(
+        config.actix_client_shutdown_ms as u64,
+    ))
+    .client_request_timeout(std::time::Duration::from_millis(
+        config.actix_client_timeout_ms as u64,
+    ))
+    .shutdown_timeout(config.actix_shutdown_timeout_s)
+    .keep_alive(std::time::Duration::from_secs(
+        config.actix_keepalive_seconds as u64,
+    ))
+    .workers(config.actix_num_workers)
+    .bind(config.web_app_server)?
     .run()
     .await?;
 
