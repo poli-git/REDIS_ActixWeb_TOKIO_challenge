@@ -15,7 +15,21 @@ pub async fn process_provider_events(provider_id: Uuid, provider_name: String, u
         "Fetching events for provider: {} - {}",
         provider_id, provider_name
     );
-
+    // Validate URL
+    if url.is_empty() {
+        error!(
+            "Provider URL is empty for provider: {} - {}",
+            provider_id, provider_name
+        );
+        return;
+    }
+    if !url.starts_with("http://") && !url.starts_with("https://") {
+        error!(
+            "Invalid URL format for provider: {} - {}. URL: {}",
+            provider_id, provider_name, url
+        );
+        return;
+    }
     // Send GET request to the provider's URL asynchronously
     let client = Client::new();
     let response = match client.get(&url).send().await {
@@ -26,10 +40,13 @@ pub async fn process_provider_events(provider_id: Uuid, provider_name: String, u
         }
     };
 
-    // Validate status
-    let status = response.status();
-    if !status.is_success() {
-        error!("HTTP error {} from {}", status, url);
+    // Check if the response is successful
+    if !response.status().is_success() {
+        error!(
+            "Failed to fetch events from {}: HTTP {}",
+            url,
+            response.status()
+        );
         return;
     }
 
@@ -50,11 +67,11 @@ pub async fn process_provider_events(provider_id: Uuid, provider_name: String, u
             return;
         }
     };
-    // Clone base_plan so it can be used multiple times
-    let base_plans = plan_list.output.base_plan.clone();
 
     // Map PlanList into Vec<NewBasePlan>
-    let events: Vec<NewBasePlan> = base_plans
+    let events: Vec<NewBasePlan> = plan_list
+        .output
+        .base_plan
         .iter()
         .flat_map(|bp| {
             let base_plan_id = bp.base_plan_id.clone().unwrap_or_default();
@@ -79,9 +96,29 @@ pub async fn process_provider_events(provider_id: Uuid, provider_name: String, u
             return;
         }
     };
+    // Persist base plans to the database
+    log::info!(
+        "Persisting base plans for provider: {} - {}",
+        provider_id,
+        provider_name
+    );
+    persist_base_plans(plan_list.output.base_plan, provider_id, &mut pg_pool);
+    info!(
+        "Successfully processed events for provider: {} - {}",
+        provider_id, provider_name
+    );
+}
 
-    for bp in plan_list.output.base_plan {
-        // Insert the base plan
+fn persist_base_plans(
+    base_plans: Vec<async_worker::xml_models::BasePlan>,
+    provider_id: uuid::Uuid,
+    pg_pool: &mut storage::connections::db::PgPooledConnection,
+) {
+    if base_plans.is_empty() {
+        log::warn!("No base plans found for provider ID: {}", provider_id);
+        return;
+    }
+    for bp in base_plans {
         let new_base_plan = NewBasePlan {
             base_plans_id: uuid::Uuid::new_v4(),
             providers_id: provider_id,
@@ -90,21 +127,21 @@ pub async fn process_provider_events(provider_id: Uuid, provider_name: String, u
             sell_mode: bp.sell_mode.clone().unwrap_or_default(),
         };
 
-        let inserted_base_plan = match add_or_update_base_plan(&mut pg_pool, new_base_plan) {
+        match add_or_update_base_plan(pg_pool, new_base_plan) {
             Ok(inserted) => {
-                info!(
+                log::info!(
                     "Added base_plan: {} : {}",
-                    inserted.title, inserted.base_plans_id
+                    inserted.title,
+                    inserted.base_plans_id
                 );
-                inserted
+                // Persist plans for this base plan
+                persist_plans(bp.plans, inserted.base_plans_id, pg_pool);
             }
             Err(e) => {
-                error!("Failed to add base_plan: {}", e);
+                log::error!("Failed to add base_plan: {}", e);
                 continue;
             }
-        };
-
-        persist_plans(bp.plans, inserted_base_plan.base_plans_id, &mut pg_pool);
+        }
     }
 }
 
@@ -113,9 +150,15 @@ fn persist_plans(
     base_plans_id: uuid::Uuid,
     pg_pool: &mut storage::connections::db::PgPooledConnection,
 ) {
-    use storage::models::plans::NewPlan;
-    use storage::plan::add_or_update_plan;
-
+    if bp_plans.is_empty() {
+        log::warn!("No plans found for base plan ID: {}", base_plans_id);
+        return;
+    }
+    log::info!(
+        "Persisting {} plans for base plan ID: {}",
+        bp_plans.len(),
+        base_plans_id
+    );
     for plan in bp_plans {
         let new_plan = NewPlan {
             plans_id: uuid::Uuid::new_v4(),
