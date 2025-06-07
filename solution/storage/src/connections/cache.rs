@@ -255,7 +255,7 @@ pub mod tests {
         let value = "131178";
         let seconds = 600;
         cache
-            .set_ex(&key.clone(), value.clone(), seconds)
+            .set_ex(&key.clone(), value, seconds)
             .await
             .unwrap();
         let get_value = cache.get(key).await.unwrap();
@@ -317,7 +317,7 @@ pub mod tests {
         cache.zrem(key.clone(), value).await.unwrap();
 
         let fetched = cache.zrange_by_score(key.clone(), 0, 2).await.unwrap();
-        assert!(fetched.first().is_none());
+        assert!(fetched.is_empty(), "Expected no items in the sorted set after removal");
     }
 
     #[tokio::test]
