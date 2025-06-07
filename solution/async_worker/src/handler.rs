@@ -80,7 +80,9 @@ pub async fn process_provider_events(provider_id: Uuid, provider_name: String, u
         }
     };
 
-    // Add each BasePlan to the database
+   
+
+
     for bp in plan_list.output.base_plan {
         // Insert the base plan
         let new_base_plan = NewBasePlan {
@@ -105,7 +107,9 @@ pub async fn process_provider_events(provider_id: Uuid, provider_name: String, u
             }
         };
 
-        // Insert each plan for this BasePlan
+        persist_plans(bp.plans, inserted_base_plan.base_plans_id, &mut pg_pool);
+
+       /*  // Insert each plan for this BasePlan
         for plan in bp.plans {
             let new_plan = NewPlan {
                 plans_id: uuid::Uuid::new_v4(),
@@ -145,6 +149,53 @@ pub async fn process_provider_events(provider_id: Uuid, provider_name: String, u
                 ),
                 Err(e) => error!("Failed to add plan: {}", e),
             }
+        } */
+    }
+}
+
+
+fn persist_plans(
+    bp_plans: Vec<async_worker::xml_models::Plan>,
+    base_plans_id: uuid::Uuid,
+    pg_pool: &mut storage::connections::db::PgPooledConnection,
+) {
+    use storage::models::plans::NewPlan;
+    use storage::plan::add_or_update_plan;
+
+    for plan in bp_plans {
+        let new_plan = NewPlan {
+            plans_id: uuid::Uuid::new_v4(),
+            base_plans_id,
+            event_plan_id: plan.plan_id.clone().unwrap_or_default(),
+            plan_start_date: chrono::NaiveDateTime::parse_from_str(
+                &plan.plan_start_date,
+                "%Y-%m-%dT%H:%M:%S",
+            )
+            .unwrap_or_else(|_| chrono::Utc::now().naive_utc()),
+            plan_end_date: chrono::NaiveDateTime::parse_from_str(
+                &plan.plan_end_date,
+                "%Y-%m-%dT%H:%M:%S",
+            )
+            .unwrap_or_else(|_| chrono::Utc::now().naive_utc()),
+            sell_from: plan
+                .sell_from
+                .as_ref()
+                .and_then(|s| chrono::NaiveDateTime::parse_from_str(s, "%Y-%m-%dT%H:%M:%S").ok())
+                .unwrap_or_else(|| chrono::Utc::now().naive_utc()),
+            sell_to: plan
+                .sell_to
+                .as_ref()
+                .and_then(|s| chrono::NaiveDateTime::parse_from_str(s, "%Y-%m-%dT%H:%M:%S").ok())
+                .unwrap_or_else(|| chrono::Utc::now().naive_utc()),
+            sold_out: plan.sold_out.unwrap_or(false),
+        };
+
+        match add_or_update_plan(pg_pool, new_plan) {
+            Ok(inserted_plan) => log::info!(
+                "Added plan: {} : {}",
+                inserted_plan.event_plan_id, inserted_plan.plans_id
+            ),
+            Err(e) => log::error!("Failed to add plan: {}", e),
         }
     }
 }
