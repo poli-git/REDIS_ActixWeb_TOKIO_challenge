@@ -128,7 +128,11 @@ fn persist_base_plans(
             providers_id: provider_id,
             event_base_id: bp.base_plan_id.clone().unwrap_or_default(),
             title: bp.title.clone(),
-            sell_mode: bp.sell_mode.clone().unwrap_or_default(),
+            sell_mode: bp
+                .sell_mode
+                .as_ref()
+                .map(|e| e.to_string())
+                .unwrap_or_default(),
         };
 
         match add_or_update_base_plan(pg_pool, new_base_plan) {

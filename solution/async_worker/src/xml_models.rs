@@ -17,7 +17,7 @@ pub struct BasePlan {
     #[serde(rename = "@base_plan_id")]
     pub base_plan_id: Option<String>,
     #[serde(rename = "@sell_mode")]
-    pub sell_mode: Option<String>,
+    pub sell_mode: Option<SellModeEnum>,
     #[serde(rename = "@organizer_company_id")]
     pub organizer_company_id: Option<String>,
     #[serde(rename = "@title")]
