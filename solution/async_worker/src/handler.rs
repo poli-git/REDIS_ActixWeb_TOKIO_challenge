@@ -2,7 +2,7 @@ use async_worker::xml_models::PlanList;
 use reqwest::Client;
 use storage::connections::db::establish_connection;
 
-use log::{error, info};
+use log::{debug, error, info};
 use quick_xml::de::from_str;
 use storage::base_plan::add_or_update_base_plan;
 use storage::models::base_plans::NewBasePlan;
@@ -39,7 +39,6 @@ pub async fn process_provider_events(provider_id: Uuid, provider_name: String, u
             return;
         }
     };
-
     // Check if the response is successful
     if !response.status().is_success() {
         error!(
@@ -49,7 +48,6 @@ pub async fn process_provider_events(provider_id: Uuid, provider_name: String, u
         );
         return;
     }
-
     // Fetch the XML body
     let xml_body = match response.text().await {
         Ok(body) => body,
@@ -58,7 +56,6 @@ pub async fn process_provider_events(provider_id: Uuid, provider_name: String, u
             return;
         }
     };
-
     // Parse XML into PlanList
     let plan_list: PlanList = match from_str(&xml_body) {
         Ok(pl) => pl,
@@ -67,7 +64,6 @@ pub async fn process_provider_events(provider_id: Uuid, provider_name: String, u
             return;
         }
     };
-
     // Map PlanList into Vec<NewBasePlan>
     let events: Vec<NewBasePlan> = plan_list
         .output
@@ -89,8 +85,32 @@ pub async fn process_provider_events(provider_id: Uuid, provider_name: String, u
         })
         .collect();
 
-    info!("Fetched {} base_plans from {}", events.len(), url);
+    // Log the number of base plans fetched
+    debug!("Fetched {} base_plans from {}", events.len(), url);
 
+    // Persist base plans to the database
+    log::debug!(
+        "Persisting base plans for provider: {} - {}",
+        provider_id,
+        provider_name
+    );
+    persist_base_plans(plan_list.output.base_plan, provider_id, provider_name.clone());
+    debug!(
+        "Successfully processed events for provider: {} - {}",
+        provider_id, provider_name.clone()
+    );
+}
+
+fn persist_base_plans(
+    base_plans: Vec<async_worker::xml_models::BasePlan>,
+    provider_id: uuid::Uuid,
+    provider_name: String
+) {
+    if base_plans.is_empty() {
+        log::warn!("No base plans found for provider: {} - {}",
+        provider_id, provider_name);
+        return;
+    }
     // Get DB connection
     let connection = establish_connection();
     let mut pg_pool = match connection.get() {
@@ -100,28 +120,6 @@ pub async fn process_provider_events(provider_id: Uuid, provider_name: String, u
             return;
         }
     };
-    // Persist base plans to the database
-    log::info!(
-        "Persisting base plans for provider: {} - {}",
-        provider_id,
-        provider_name
-    );
-    persist_base_plans(plan_list.output.base_plan, provider_id, &mut pg_pool);
-    info!(
-        "Successfully processed events for provider: {} - {}",
-        provider_id, provider_name
-    );
-}
-
-fn persist_base_plans(
-    base_plans: Vec<async_worker::xml_models::BasePlan>,
-    provider_id: uuid::Uuid,
-    pg_pool: &mut storage::connections::db::PgPooledConnection,
-) {
-    if base_plans.is_empty() {
-        log::warn!("No base plans found for provider ID: {}", provider_id);
-        return;
-    }
     for bp in base_plans {
         let new_base_plan = NewBasePlan {
             base_plans_id: uuid::Uuid::new_v4(),
@@ -135,15 +133,15 @@ fn persist_base_plans(
                 .unwrap_or_default(),
         };
 
-        match add_or_update_base_plan(pg_pool, new_base_plan) {
-            Ok(inserted) => {
-                log::info!(
+        match add_or_update_base_plan(&mut pg_pool, new_base_plan) {
+            Ok(inserted) => { 
+                log::debug!(
                     "Added base_plan: {} : {}",
-                    inserted.title,
-                    inserted.base_plans_id
+                    inserted.event_base_id,
+                    inserted.title
                 );
                 // Persist plans for this base plan
-                persist_plans(bp.plans, inserted.base_plans_id, pg_pool);
+                persist_plans(bp.plans, inserted.base_plans_id, &mut pg_pool);
             }
             Err(e) => {
                 log::error!("Failed to add base_plan: {}", e);
@@ -162,7 +160,7 @@ fn persist_plans(
         log::warn!("No plans found for base plan ID: {}", base_plans_id);
         return;
     }
-    log::info!(
+    log::debug!(
         "Persisting {} plans for base plan ID: {}",
         bp_plans.len(),
         base_plans_id
@@ -196,10 +194,10 @@ fn persist_plans(
         };
 
         match add_or_update_plan(pg_pool, new_plan) {
-            Ok(inserted_plan) => log::info!(
+            Ok(inserted_plan) => log::debug!(
                 "Added plan: {} : {}",
-                inserted_plan.event_plan_id,
-                inserted_plan.plans_id
+                inserted_plan.plans_id,
+                inserted_plan.event_plan_id
             ),
             Err(e) => log::error!("Failed to add plan: {}", e),
         }
