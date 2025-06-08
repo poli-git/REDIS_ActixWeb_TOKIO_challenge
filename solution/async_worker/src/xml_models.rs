@@ -12,7 +12,7 @@ pub struct Output {
     pub base_plan: Vec<BasePlan>,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct BasePlan {
     #[serde(rename = "@base_plan_id")]
     pub base_plan_id: Option<String>,
@@ -26,7 +26,7 @@ pub struct BasePlan {
     pub plans: Vec<Plan>,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
 pub struct Plan {
     #[serde(rename = "@plan_start_date")]
     pub plan_start_date: String,
@@ -44,7 +44,7 @@ pub struct Plan {
     pub zones: Vec<Zone>,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
 pub struct Zone {
     #[serde(rename = "@zone_id")]
     pub zone_id: Option<String>,

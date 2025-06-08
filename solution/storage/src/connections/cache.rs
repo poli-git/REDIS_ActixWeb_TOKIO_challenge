@@ -214,14 +214,10 @@ impl Cache {
 /// Queries the redis PING command to determine health
 pub async fn is_healthy(cache: &Cache) -> bool {
     let mut conn = cache.conn.clone();
-    // The redis command PING should return PONG, but we don't care what's returned as long as we get something back.
-    match redis::cmd("PING")
+    redis::cmd("PING")
         .query_async::<MultiplexedConnection, String>(&mut conn)
         .await
-    {
-        Ok(_) => true,
-        Err(_) => false,
-    }
+        .is_ok()
 }
 
 #[cfg(test)]
