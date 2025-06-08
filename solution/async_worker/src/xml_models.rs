@@ -1,5 +1,5 @@
-use serde::Deserialize;
-
+use serde::{Deserialize, Serialize};
+use std::fmt;
 #[derive(Debug, Deserialize)]
 #[serde(rename = "planList")]
 pub struct PlanList {
@@ -56,4 +56,20 @@ pub struct Zone {
     pub name: Option<String>,
     #[serde(rename = "@numbered")]
     pub numbered: Option<bool>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum SellModeEnum {
+    Online,
+    Offline,
+}
+
+impl fmt::Display for SellModeEnum {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            SellModeEnum::Online => write!(f, "online"),
+            SellModeEnum::Offline => write!(f, "offline"),
+        }
+    }
 }

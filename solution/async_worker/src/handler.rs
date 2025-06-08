@@ -80,7 +80,11 @@ pub async fn process_provider_events(provider_id: Uuid, provider_name: String, u
                 providers_id: provider_id,
                 event_base_id: base_plan_id.clone(),
                 title: bp.title.clone(),
-                sell_mode: bp.sell_mode.clone().unwrap_or_default(),
+                sell_mode: bp
+                    .sell_mode
+                    .as_ref()
+                    .map(|e| e.to_string())
+                    .unwrap_or_default(),
             })
         })
         .collect();
