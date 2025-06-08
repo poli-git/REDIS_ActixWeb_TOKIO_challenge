@@ -20,9 +20,9 @@ mod tests {
     use super::*;
     use crate::connections::db::establish_connection;
 
-    #[test]
-    fn test_get_providers_returns_ok() {
-        let connection = establish_connection();
+    #[tokio::test]
+    async fn test_get_providers_returns_ok() {
+        let connection = establish_connection().await;
         let mut pg_pool = connection
             .get()
             .expect("Failed to get connection from pool");
@@ -31,9 +31,9 @@ mod tests {
         assert!(result.is_ok(), "Expected Ok, got {:?}", result);
     }
 
-    #[test]
-    fn test_get_providers_returns_vec() {
-        let connection = establish_connection();
+    #[tokio::test]
+    async fn test_get_providers_returns_vec() {
+        let connection = establish_connection().await;
         let mut pg_pool = connection
             .get()
             .expect("Failed to get connection from pool");
@@ -43,10 +43,10 @@ mod tests {
         assert!(result.is_empty() || !result.is_empty());
     }
 
-    #[test]
-    fn test_get_providers_returns_error_on_invalid_connection() {
+    #[tokio::test]
+    async fn test_get_providers_returns_error_on_invalid_connection() {
         // Create and immediately drop the connection to simulate an invalid connection
-        let connection = establish_connection();
+        let connection = establish_connection().await;
         let pg_pool = connection
             .get()
             .expect("Failed to get connection from pool");

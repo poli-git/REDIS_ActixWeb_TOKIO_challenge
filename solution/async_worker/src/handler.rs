@@ -23,9 +23,9 @@ async fn get_cache() -> Cache {
         .unwrap()
 }
 
-fn get_db_connection() -> Option<storage::connections::db::PgPooledConnection> {
-    let connection = establish_connection();
-    match connection.get() {
+async fn get_db_connection() -> Option<storage::connections::db::PgPooledConnection> {
+    let pool = establish_connection().await;
+    match pool.get() {
         Ok(conn) => Some(conn),
         Err(e) => {
             error!("Failed to get DB connection: {}", e);
@@ -145,7 +145,7 @@ async fn persist_base_plans(
         return;
     }
     // Get DB connection
-    let mut pg_pool = match get_db_connection() {
+    let mut pg_pool = match get_db_connection().await {
         Some(conn) => conn,
         None => return,
     };

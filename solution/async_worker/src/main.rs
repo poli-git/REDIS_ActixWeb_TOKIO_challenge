@@ -18,8 +18,9 @@ async fn main() {
     // Main loop to fetch providers and process events
     loop {
         log::info!("Fetching active providers...");
-        let providers = tokio::task::spawn_blocking(|| {
-            let connection = establish_connection();
+        // Establish the connection asynchronously before entering the blocking task
+        let connection = establish_connection().await;
+        let providers = tokio::task::spawn_blocking(move || {
             let mut pg_pool = connection.get().map_err(|e| e.to_string())?;
             get_active_providers(&mut pg_pool).map_err(|e| e.to_string())
         })
