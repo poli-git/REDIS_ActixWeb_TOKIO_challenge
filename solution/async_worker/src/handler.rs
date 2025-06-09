@@ -142,6 +142,14 @@ async fn persist_base_plans(
                 .unwrap_or_default(),
         };
 
+        // Persist the base_plan to the database
+        log::debug!(
+            "Processing base_plan: {} : {} for provider: {} - {}",
+            new_base_plan.event_base_id,
+            new_base_plan.title,
+            provider_id,
+            provider_name
+        );
         match add_or_update_base_plan(&mut pg_pool, new_base_plan) {
             Ok(inserted) => {
                 log::debug!(
@@ -150,16 +158,23 @@ async fn persist_base_plans(
                     inserted.title
                 );
                 // Persist plans for this base plan
-                persist_plans(&bp.plans, inserted.base_plans_id, &mut pg_pool).await;
+                persist_plans(
+                    &bp.plans,
+                    bp.sell_mode.as_ref().cloned(),
+                    inserted.base_plans_id,
+                    &mut pg_pool,
+                    &redis_conn,
+                )
+                .await;
 
-                // Cache events that the sell mode is 'online'
+                // Cache base_plan that the sell mode is 'online'
                 if inserted.sell_mode == SellModeEnum::Online.to_string() {
-                    log::debug!("Caching online event: {}", inserted.event_base_id);
+                    log::debug!("Caching full online event: {}", inserted.event_base_id);
 
                     // Cache the online event
                     if let Err(e) = redis_conn
                         .set(
-                            format!("event:{}:{}", provider_id, inserted.event_base_id),
+                            format!("base_plan:{}:{}", provider_id, inserted.event_base_id),
                             serde_json::to_string(&bp).unwrap_or_default(),
                         )
                         .await
@@ -182,8 +197,10 @@ async fn persist_base_plans(
 
 async fn persist_plans(
     bp_plans: &Vec<async_worker::xml_models::Plan>,
+    sell_mode: Option<SellModeEnum>,
     base_plans_id: uuid::Uuid,
     pg_pool: &mut storage::connections::db::PgPooledConnection,
+    redis_conn: &storage::connections::cache::Cache,
 ) {
     if bp_plans.is_empty() {
         log::warn!("No plans found for base plan ID: {}", base_plans_id);
@@ -222,6 +239,11 @@ async fn persist_plans(
             sold_out: plan.sold_out.unwrap_or(false),
         };
 
+        // Clone fields needed for caching before moving new_plan
+        let event_plan_id_for_cache = new_plan.event_plan_id.clone();
+        let plan_start_date_for_cache = new_plan.plan_start_date;
+        let plan_end_date_for_cache = new_plan.plan_end_date;
+
         match add_or_update_plan(pg_pool, new_plan) {
             Ok(inserted_plan) => log::debug!(
                 "Added plan: {} : {}",
@@ -229,6 +251,47 @@ async fn persist_plans(
                 inserted_plan.event_plan_id
             ),
             Err(e) => log::error!("Failed to add plan: {}", e),
+        }
+        // Cache the plan if the sell mode is 'online'
+        if sell_mode == Some(SellModeEnum::Online) {
+            log::debug!(
+                "Caching online plan: {} for base plan ID: {}",
+                event_plan_id_for_cache,
+                base_plans_id
+            );
+
+            // Cache start/end dates if the sell mode is 'online'
+            if sell_mode == Some(SellModeEnum::Online) {
+                if let Err(e) = redis_conn
+                    .cache_plan_dates(
+                        event_plan_id_for_cache.clone(),
+                        plan_start_date_for_cache,
+                        plan_end_date_for_cache,
+                    )
+                    .await
+                {
+                    log::error!(
+                        "Failed to cache start/end date for online event {}: {}",
+                        event_plan_id_for_cache,
+                        e
+                    );
+                }
+            }
+            // Cache the plan details
+            if let Err(e) = redis_conn
+                .set(
+                    format!("plan:{}:{}", base_plans_id, event_plan_id_for_cache),
+                    serde_json::to_string(&plan).unwrap_or_default(),
+                )
+                .await
+            {
+                log::error!(
+                    "Failed to cache plan {} for base plan ID {}: {}",
+                    event_plan_id_for_cache,
+                    base_plans_id,
+                    e
+                );
+            }
         }
     }
 }

@@ -3,6 +3,7 @@ use dotenv::dotenv;
 use futures::{stream, StreamExt};
 use redis::Client;
 use redis::FromRedisValue;
+use redis::Pipeline;
 use redis::{aio::MultiplexedConnection, pipe, AsyncCommands, ToRedisArgs};
 use std::env;
 
@@ -26,22 +27,39 @@ impl Cache {
         Ok(Self { conn })
     }
 
+    /// Returns a Redis async pipeline and a cloned connection for use in async contexts.
+    pub async fn pipeline(&self) -> (Pipeline, redis::aio::MultiplexedConnection) {
+        (redis::pipe(), self.conn.clone())
+    }
+
+    pub async fn cache_plan_dates(
+        &self,
+        event_plan_id: String,
+        start_date: chrono::NaiveDateTime,
+        end_date: chrono::NaiveDateTime,
+    ) -> Result<(), CacheError> {
+        let (mut pipe, mut conn) = self.pipeline().await;
+        pipe.cmd("ZADD")
+            .arg("start_date")
+            .arg(start_date.and_utc().timestamp())
+            .arg(event_plan_id.clone());
+
+        pipe.cmd("ZADD")
+            .arg("end_date")
+            .arg(end_date.and_utc().timestamp())
+            .arg(event_plan_id.clone());
+
+        pipe.query_async::<_, ()>(&mut conn)
+            .await
+            .map_err(|e| CacheError::Error(format!("Failed to cache plan dates: {}", e)))
+    }
+
     /// Get a value by key from redis.
     pub async fn get(&self, key: String) -> CacheResult<String> {
         let mut conn = self.conn.clone();
         conn.get(key.clone())
             .await
             .map_err(|_| CacheError::NotFound(key))
-    }
-
-    /// Get a specific value by a key formated like:
-    /// format!("idempotency-key:{val:?}", val=idempotency_key.to_string());
-    /// format!("accounts:{val:}", val=account_id.to_string());
-    pub async fn hash_get(&self, query: String, value: String) -> CacheResult<String> {
-        let mut conn = self.conn.clone();
-        conn.hget(query.clone(), value)
-            .await
-            .map_err(|_| CacheError::NotFound(query))
     }
 
     /// set a key/value pair in redis
