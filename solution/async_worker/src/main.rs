@@ -20,7 +20,7 @@ async fn main() {
         log::info!("Fetching active providers...");
         // Establish the connection asynchronously before entering the blocking task
         let connection = get_db_connection().await;
-        
+
         // If the connection is None, log an error and retry after a delay
         if connection.is_none() {
             log::error!("Failed to establish database connection.");
