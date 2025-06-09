@@ -159,7 +159,7 @@ async fn persist_base_plans(
                     // Cache the online event
                     if let Err(e) = redis_conn
                         .set(
-                            format!("event:{}", inserted.event_base_id),
+                            format!("event:{}:{}", provider_id, inserted.event_base_id),
                             serde_json::to_string(&bp).unwrap_or_default(),
                         )
                         .await
