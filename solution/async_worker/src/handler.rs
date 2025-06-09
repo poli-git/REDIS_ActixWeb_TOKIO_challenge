@@ -32,7 +32,7 @@ pub async fn process_provider_events(provider_id: Uuid, provider_name: String, u
         );
         return;
     }
-    // Send GET request to the provider's URL asynchronously
+    // Send request to the provider's URL
     let client = Client::new();
     let response = match client.get(&url).send().await {
         Ok(resp) => resp,
@@ -162,7 +162,26 @@ async fn persist_base_plans(
                     inserted.event_base_id,
                     inserted.title
                 );
-                // Persist plans for this base plan to the database
+                // Cache ONLY base_plan that the sell mode is 'online'
+                if inserted.sell_mode == SellModeEnum::Online.to_string() {
+                    log::debug!("Caching full online event: {}", inserted.event_base_id);
+
+                    // Cache Caching full online base_plan
+                    if let Err(e) = redis_conn
+                        .set(
+                            format!("base_plan:{}:{}", provider_id, inserted.event_base_id),
+                            serde_json::to_string(&bp).unwrap_or_default(),
+                        )
+                        .await
+                    {
+                        log::error!(
+                            "Failed to cache online base_plan {}: {}",
+                            inserted.event_base_id,
+                            e
+                        );
+                    }
+                }
+                // Persist plans associated with this base plan to the database
                 match persist_plans(
                     &bp.plans,
                     bp.sell_mode.as_ref().cloned(),
@@ -177,25 +196,6 @@ async fn persist_base_plans(
                             "Successfully persisted plans for base plan ID: {}",
                             inserted.base_plans_id
                         );
-                        // Cache base_plan that the sell mode is 'online'
-                        if inserted.sell_mode == SellModeEnum::Online.to_string() {
-                            log::debug!("Caching full online event: {}", inserted.event_base_id);
-
-                            // Cache the online event
-                            if let Err(e) = redis_conn
-                                .set(
-                                    format!("base_plan:{}:{}", provider_id, inserted.event_base_id),
-                                    serde_json::to_string(&bp).unwrap_or_default(),
-                                )
-                                .await
-                            {
-                                log::error!(
-                                    "Failed to cache online event {}: {}",
-                                    inserted.event_base_id,
-                                    e
-                                );
-                            }
-                        }
                     }
                     Err(e) => {
                         log::error!(
