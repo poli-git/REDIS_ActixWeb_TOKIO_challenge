@@ -1,38 +1,15 @@
+use async_worker::utils::{get_cache, get_db_connection};
 use async_worker::xml_models::PlanList;
 use async_worker::xml_models::SellModeEnum;
 use reqwest::Client;
-use storage::connections::db::establish_connection;
 
 use log::{debug, error, info};
 use quick_xml::de::from_str;
 use storage::base_plan::add_or_update_base_plan;
-use storage::connections::cache::Cache;
-use storage::error::StorageError;
 use storage::models::base_plans::NewBasePlan;
 use storage::models::plans::NewPlan;
 use storage::plan::add_or_update_plan;
 use uuid::Uuid;
-
-async fn get_cache() -> Cache {
-    Cache::new()
-        .await
-        .map_err(|e| {
-            log::error!("Failed to connect to Redis: {}", e);
-            StorageError::from(e)
-        })
-        .unwrap()
-}
-
-async fn get_db_connection() -> Option<storage::connections::db::PgPooledConnection> {
-    let pool = establish_connection().await;
-    match pool.get() {
-        Ok(conn) => Some(conn),
-        Err(e) => {
-            error!("Failed to get DB connection: {}", e);
-            None
-        }
-    }
-}
 
 pub async fn process_provider_events(provider_id: Uuid, provider_name: String, url: String) {
     info!(

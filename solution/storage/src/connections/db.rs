@@ -11,7 +11,9 @@ pub async fn establish_connection() -> PgPool {
     dotenv().ok();
 
     let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-    init_pool(&database_url).await.expect("Failed to create pool")
+    init_pool(&database_url)
+        .await
+        .expect("Failed to create pool")
 }
 
 //Creates a default R2D2 Postgres DB Pool
