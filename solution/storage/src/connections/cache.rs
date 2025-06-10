@@ -82,20 +82,19 @@ impl Cache {
 
     pub async fn get_matched_events(
         &self,
-        filter_query: FilterQuery,
+        start_timestamp: NaiveDateTime,
+        end_timestamp: NaiveDateTime,
     ) -> Result<Vec<ProviderABaseEvent>, CacheError> {
-        let start_timestamp = filter_query.starts_at.and_utc().timestamp();
-        let end_timestamp = filter_query.ends_at.and_utc().timestamp();
-
+       
         let (mut pipe, mut conn) = self.pipeline().await;
         pipe.cmd("ZRANGEBYSCORE")
             .arg("start_date")
-            .arg(start_timestamp)
+            .arg(start_timestamp.and_utc().timestamp())
             .arg("+inf");
         pipe.cmd("ZRANGEBYSCORE")
             .arg("end_date")
             .arg("-inf")
-            .arg(end_timestamp);
+            .arg(end_timestamp.and_utc().timestamp());
 
         let (start_event_ids, end_event_ids): (Vec<String>, Vec<String>) =
             pipe.query_async(&mut conn).await.map_err(|e| {
