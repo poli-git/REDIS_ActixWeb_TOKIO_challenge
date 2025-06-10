@@ -80,7 +80,7 @@ impl Cache {
             .map_err(|e| CacheError::Error(format!("Failed to cache plan dates: {}", e)))
     }
 
-    pub async fn get_all_events(
+    pub async fn get_matched_events(
         &self,
         filter_query: FilterQuery,
     ) -> Result<Vec<ProviderABaseEvent>, CacheError> {
@@ -126,7 +126,7 @@ impl Cache {
         Ok(base_events.into_values().collect())
     }
 
-    pub async fn get_base_ids(&self, event_id: &str) -> Result<HashSet<String>, CacheError> {
+    async fn get_base_ids(&self, event_id: &str) -> Result<HashSet<String>, CacheError> {
         let mut conn = self.conn.clone();
         let mut base_ids = HashSet::new();
         let pattern = format!("{}:*:{}", ROOT_KEY, event_id);
@@ -139,7 +139,7 @@ impl Cache {
         }
         Ok(base_ids)
     }
-    pub async fn get_base_event_data(
+    async fn get_base_event_data(
         &self,
         base_ids: &HashSet<String>,
     ) -> Result<Vec<Vec<u8>>, CacheError> {
