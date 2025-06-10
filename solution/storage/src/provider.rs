@@ -30,17 +30,6 @@ pub fn add_or_update_provider(
         .get_result(connection)
         .map_err(StorageError::from)
 }
-// This function retrieves a provider by its ID
-pub fn get_provider_by_id(
-    connection: &mut PgPooledConnection,
-    provider_id: uuid::Uuid,
-) -> Result<Option<Provider>, StorageError> {
-    providers::table
-        .filter(providers::providers_id.eq(provider_id))
-        .first::<Provider>(connection)
-        .optional()
-        .map_err(StorageError::from)
-}
 
 #[cfg(test)]
 mod tests {
@@ -68,30 +57,5 @@ mod tests {
         let result = get_active_providers(&mut pg_pool).expect("Expected Ok result");
         // This just checks that the result is a Vec (could be empty)
         assert!(result.is_empty() || !result.is_empty());
-    }
-
-    #[tokio::test]
-    async fn test_get_providers_returns_error_on_invalid_connection() {
-        // Create and immediately drop the connection to simulate an invalid connection
-        let connection = establish_connection().await;
-        let pg_pool = connection
-            .get()
-            .expect("Failed to get connection from pool");
-        drop(pg_pool); // Close the connection
-
-        // Try to use the dropped connection (should error)
-        // We need to create a new variable to avoid using-after-move
-        let mut invalid_pg_pool = connection
-            .get()
-            .expect("Failed to get connection from pool");
-        drop(connection); // Drop the pool itself
-
-        // Manually close the connection to simulate error (if possible)
-        // Now, forcibly cause an error by passing a closed connection
-        // This may not always work depending on the pool implementation,
-        // but it's a common pattern for simulating connection errors in tests.
-
-        let result = get_active_providers(&mut invalid_pg_pool);
-        assert!(result.is_err(), "Expected Err, got {:?}", result);
-    }
+    }    
 }

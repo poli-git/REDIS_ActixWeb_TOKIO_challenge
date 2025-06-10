@@ -25,6 +25,16 @@ async fn init_pool(database_url: &str) -> Result<PgPool, PoolError> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use dotenv::dotenv;
+    use std::sync::Once;
+
+    static INIT: Once = Once::new();
+
+    fn init_env() {
+        INIT.call_once(|| {
+            dotenv().ok();
+        });
+    }
 
     #[tokio::test]
     async fn test_establish_connection() {
@@ -39,8 +49,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_init_pool() {
-        let database_url = "postgres://user:password@localhost/test_db";
-        let pool = init_pool(database_url).await;
+        init_env();
+        let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+        let pool = init_pool(&database_url).await;
         assert!(pool.is_ok(), "Failed to create pool: {:?}", pool.err());
     }
 
