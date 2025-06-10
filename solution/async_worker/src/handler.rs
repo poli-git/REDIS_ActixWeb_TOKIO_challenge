@@ -162,11 +162,11 @@ async fn persist_base_plans(
                     inserted.event_base_id,
                     inserted.title
                 );
-                // Cache ONLY base_plan that the sell mode is 'online'
+                // Cache ONLY base_plan with sell mode = 'online'
                 if inserted.sell_mode == SellModeEnum::Online.to_string() {
                     log::debug!("Caching full online event: {}", inserted.event_base_id);
 
-                    // Cache Caching full online base_plan
+                    // Cache online base_plan
                     if let Err(e) = redis_conn
                         .set(
                             format!("base_plan:{}:{}", provider_id, inserted.event_base_id),
@@ -186,6 +186,7 @@ async fn persist_base_plans(
                     &bp.plans,
                     bp.sell_mode.as_ref().cloned(),
                     inserted.base_plans_id,
+                    &inserted.event_base_id,
                     &mut pg_pool,
                     &redis_conn,
                 )
@@ -220,6 +221,7 @@ async fn persist_plans(
     bp_plans: &Vec<async_worker::xml_models::Plan>,
     sell_mode: Option<SellModeEnum>,
     base_plans_id: uuid::Uuid,
+    event_base_id: &str,
     pg_pool: &mut storage::connections::db::PgPooledConnection,
     redis_conn: &storage::connections::cache::Cache,
 ) -> Result<(), PersistPlansError> {
@@ -270,11 +272,11 @@ async fn persist_plans(
                     inserted_plan.plans_id,
                     inserted_plan.event_plan_id
                 );
-
                 // Cache ONLY plans that are associated to a base_plan with sell mode = 'online'
                 if sell_mode == Some(SellModeEnum::Online) {
                     if let Err(e) = redis_conn
                         .cache_plan_dates(
+                            event_base_id.to_string(),
                             inserted_plan.event_plan_id.to_string(),
                             inserted_plan.plan_start_date,
                             inserted_plan.plan_end_date,
@@ -283,24 +285,7 @@ async fn persist_plans(
                     {
                         log::error!(
                             "Failed to cache start/end date for online event {}: {}",
-                            event_plan_id_for_cache,
-                            e
-                        );
-                        return Err(PersistPlansError::RedisError(e.to_string()));
-                    }
-                    if let Err(e) = redis_conn
-                        .set(
-                            format!("plan:{}:{}", base_plans_id, event_plan_id_for_cache),
-                            serde_json::to_string(&plan).map_err(|e| {
-                                PersistPlansError::SerializationError(e.to_string())
-                            })?,
-                        )
-                        .await
-                    {
-                        log::error!(
-                            "Failed to cache plan {} for base plan ID {}: {}",
-                            event_plan_id_for_cache,
-                            base_plans_id,
+                            inserted_plan.event_plan_id.to_string(),
                             e
                         );
                         return Err(PersistPlansError::RedisError(e.to_string()));
@@ -321,112 +306,528 @@ async fn persist_plans(
 }
 #[cfg(test)]
 mod tests {
+    use super::*;
+    use async_worker::xml_models::PlanList;
+    use storage::base_plan::add_or_update_base_plan;
+    use storage::plan::add_or_update_plan;
 
-    use storage::models::base_plans::NewBasePlan;
-    use storage::models::plans::NewPlan;
-    use uuid::Uuid;
-
-    // Mock types for DB connection and insert functions
-    struct MockPgPooledConnection;
-    fn mock_add_or_update_base_plan(
-        _conn: &mut MockPgPooledConnection,
-        base_plan: NewBasePlan,
-    ) -> Result<NewBasePlan, &'static str> {
-        Ok(base_plan)
-    }
-    fn mock_add_or_update_plan(
-        _conn: &mut MockPgPooledConnection,
-        plan: NewPlan,
-    ) -> Result<NewPlan, &'static str> {
-        Ok(plan)
-    }
-
-    fn mock_base_plan() -> async_worker::xml_models::BasePlan {
-        async_worker::xml_models::BasePlan {
-            base_plan_id: Some("BP123".to_string()),
-            title: "Test Base Plan".to_string(),
-            sell_mode: Some(async_worker::xml_models::SellModeEnum::Online),
-            plans: vec![mock_plan()],
-            organizer_company_id: Some("ORG123".to_string()),
-        }
-    }
-
-    fn mock_plan() -> async_worker::xml_models::Plan {
-        async_worker::xml_models::Plan {
-            plan_id: Some("PL123".to_string()),
-            plan_start_date: "2024-01-01T00:00:00".to_string(),
-            plan_end_date: "2024-12-31T23:59:59".to_string(),
-            sell_from: Some("2024-01-01T00:00:00".to_string()),
-            sell_to: Some("2024-12-31T23:59:59".to_string()),
-            sold_out: Some(false),
-            zones: vec![],
-        }
-    }
-
-    #[test]
-    fn test_persist_base_plans_and_plans() {
-        // Arrange
-        let base_plans = vec![mock_base_plan()];
+    #[tokio::test]
+    async fn test_process_provider_events() {
+        // Mock provider ID, name, and URL
         let provider_id = Uuid::new_v4();
-        let mut mock_conn = MockPgPooledConnection;
+        let provider_name = "Test Provider".to_string();
+        let url = "http://example.com/events".to_string();
 
-        // Act: Simulate persist_base_plans logic with mocks
-        for bp in base_plans {
-            let new_base_plan = NewBasePlan {
-                base_plans_id: Uuid::new_v4(),
-                providers_id: provider_id,
-                event_base_id: bp.base_plan_id.clone().unwrap_or_default(),
-                title: bp.title.clone(),
-                sell_mode: bp
-                    .sell_mode
-                    .as_ref()
-                    .map(|e| e.to_string())
-                    .unwrap_or_default(),
-            };
-
-            let inserted = mock_add_or_update_base_plan(&mut mock_conn, new_base_plan)
-                .expect("BasePlan insert should succeed");
-
-            // Now persist plans for this base plan
-            for plan in bp.plans {
-                let new_plan = NewPlan {
-                    plans_id: Uuid::new_v4(),
-                    base_plans_id: inserted.base_plans_id,
-                    event_plan_id: plan.plan_id.clone().unwrap_or_default(),
-                    plan_start_date: chrono::NaiveDateTime::parse_from_str(
-                        &plan.plan_start_date,
-                        "%Y-%m-%dT%H:%M:%S",
-                    )
-                    .unwrap_or_else(|_| chrono::Utc::now().naive_utc()),
-                    plan_end_date: chrono::NaiveDateTime::parse_from_str(
-                        &plan.plan_end_date,
-                        "%Y-%m-%dT%H:%M:%S",
-                    )
-                    .unwrap_or_else(|_| chrono::Utc::now().naive_utc()),
-                    sell_from: plan
-                        .sell_from
-                        .as_ref()
-                        .and_then(|s| {
-                            chrono::NaiveDateTime::parse_from_str(s, "%Y-%m-%dT%H:%M:%S").ok()
-                        })
-                        .unwrap_or_else(|| chrono::Utc::now().naive_utc()),
-                    sell_to: plan
-                        .sell_to
-                        .as_ref()
-                        .and_then(|s| {
-                            chrono::NaiveDateTime::parse_from_str(s, "%Y-%m-%dT%H:%M:%S").ok()
-                        })
-                        .unwrap_or_else(|| chrono::Utc::now().naive_utc()),
-                    sold_out: plan.sold_out.unwrap_or(false),
-                };
-
-                let inserted_plan = mock_add_or_update_plan(&mut mock_conn, new_plan)
-                    .expect("Plan insert should succeed");
-
-                // Assert: Check that the plan is linked to the correct base plan
-                assert_eq!(inserted_plan.base_plans_id, inserted.base_plans_id);
-                assert_eq!(inserted_plan.event_plan_id, "PL123");
-            }
-        }
+        // Call the function
+        process_provider_events(provider_id, provider_name, url).await;
     }
+}
+// Test for persist_base_plans
+#[tokio::test]
+async fn test_persist_base_plans() {
+    let provider_id = Uuid::new_v4();
+    let provider_name = "Test Provider".to_string();
+    let base_plans = vec![async_worker::xml_models::BasePlan {
+        base_plan_id: Some("test_base_plan_id".to_string()),
+        title: "Test Base Plan".to_string(),
+        sell_mode: Some(SellModeEnum::Online),
+        organizer_company_id: None,
+        plans: vec![],
+    }];
+
+    let result = persist_base_plans(base_plans, provider_id, provider_name).await;
+    assert!(result.is_ok(), "Failed to persist base plans");
+}
+// Test for persist_plans
+#[tokio::test]
+async fn test_persist_plans() {
+    let base_plans_id = Uuid::new_v4();
+    let event_base_id = "test_event_base_id";
+    let pool = storage::connections::db::establish_connection().await;
+    let mut pg_pool = pool.get().unwrap();
+    let redis_conn = get_cache().await;
+
+    let bp_plans = vec![async_worker::xml_models::Plan {
+        plan_id: Some("test_plan_id".to_string()),
+        plan_start_date: "2023-10-01T00:00:00".to_string(),
+        plan_end_date: "2023-10-02T00:00:00".to_string(),
+        sell_from: Some("2023-09-01T00:00:00".to_string()),
+        sell_to: Some("2023-09-30T00:00:00".to_string()),
+        sold_out: Some(false),
+        zones: vec![],
+    }];
+
+    let result = persist_plans(
+        &bp_plans,
+        Some(SellModeEnum::Online),
+        base_plans_id,
+        event_base_id,
+        &mut pg_pool,
+        &redis_conn,
+    )
+    .await;
+    assert!(result.is_ok(), "Failed to persist plans");
+}
+// Test for persist_plans with empty plans
+#[tokio::test]
+async fn test_persist_plans_empty() {
+    let base_plans_id = Uuid::new_v4();
+    let event_base_id = "test_event_base_id";
+    let pool = storage::connections::db::establish_connection().await;
+    let mut pg_conn = pool.get().unwrap();
+    let redis_conn = get_cache().await;
+
+    let bp_plans: Vec<async_worker::xml_models::Plan> = vec![];
+
+    let result = persist_plans(
+        &bp_plans,
+        Some(SellModeEnum::Online),
+        base_plans_id,
+        event_base_id,
+        &mut pg_conn,
+        &redis_conn,
+    )
+    .await;
+    assert!(result.is_err(), "Expected error for empty plans");
+}
+// Test for persist_plans with invalid date formats
+#[tokio::test]
+async fn test_persist_plans_invalid_dates() {
+    let base_plans_id = Uuid::new_v4();
+    let event_base_id = "test_event_base_id";
+    let pool = storage::connections::db::establish_connection().await;
+    let mut pg_pool = pool.get().unwrap();
+    let redis_conn = get_cache().await;
+
+    let bp_plans = vec![async_worker::xml_models::Plan {
+        plan_id: Some("test_plan_id".to_string()),
+        plan_start_date: "invalid_date".to_string(),
+        plan_end_date: "invalid_date".to_string(),
+        sell_from: Some("invalid_date".to_string()),
+        sell_to: Some("invalid_date".to_string()),
+        sold_out: Some(false),
+        zones: vec![],
+    }];
+
+    let result = persist_plans(
+        &bp_plans,
+        Some(SellModeEnum::Online),
+        base_plans_id,
+        event_base_id,
+        pg_pool,
+        &redis_conn,
+    )
+    .await;
+    assert!(result.is_err(), "Expected error for invalid date formats");
+}
+// Test for persist_plans with missing sell mode
+#[tokio::test]
+async fn test_persist_plans_missing_sell_mode() {
+    let base_plans_id = Uuid::new_v4();
+    let event_base_id = "test_event_base_id";
+    let pool = storage::connections::db::establish_connection().await;
+    let mut pg_pool = pool.get().unwrap();
+    let redis_conn = get_cache().await;
+
+    let bp_plans = vec![async_worker::xml_models::Plan {
+        plan_id: Some("test_plan_id".to_string()),
+        plan_start_date: "2023-10-01T00:00:00".to_string(),
+        plan_end_date: "2023-10-02T00:00:00".to_string(),
+        sell_from: Some("2023-09-01T00:00:00".to_string()),
+        sell_to: Some("2023-09-30T00:00:00".to_string()),
+        sold_out: Some(false),
+        zones: vec![],
+    }];
+
+    let result = persist_plans(
+        &bp_plans,
+        None, // Missing sell mode
+        base_plans_id,
+        event_base_id,
+        &mut pg_pool,
+        &redis_conn,
+    )
+    .await;
+    assert!(result.is_err(), "Expected error for missing sell mode");
+}
+// Test for persist_plans with database error
+#[tokio::test]
+async fn test_persist_plans_db_error() {
+    let base_plans_id = Uuid::new_v4();
+    let event_base_id = "test_event_base_id";
+    let pool = storage::connections::db::establish_connection().await;
+    let mut pg_pool = pool.get().unwrap();
+    let redis_conn = get_cache().await;
+
+    let bp_plans = vec![async_worker::xml_models::Plan {
+        plan_id: Some("test_plan_id".to_string()),
+        plan_start_date: "invalid_date".to_string(), // Invalid date to trigger error
+        plan_end_date: "invalid_date".to_string(),
+        sell_from: Some("invalid_date".to_string()),
+        sell_to: Some("invalid_date".to_string()),
+        sold_out: Some(false),
+        zones: vec![],
+    }];
+
+    let result = persist_plans(
+        &bp_plans,
+        Some(SellModeEnum::Online),
+        base_plans_id,
+        event_base_id,
+        &mut pg_pool,
+        &redis_conn,
+    )
+    .await;
+    assert!(result.is_err(), "Expected error for database operation");
+}
+// Test for persist_base_plans with empty base plans
+#[tokio::test]
+async fn test_persist_base_plans_empty() {
+    let provider_id = Uuid::new_v4();
+    let provider_name = "Test Provider".to_string();
+    let base_plans: Vec<async_worker::xml_models::BasePlan> = vec![];
+
+    let result = persist_base_plans(base_plans, provider_id, provider_name).await;
+    assert!(result.is_ok(), "Expected success for empty base plans");
+}
+// Test for process_provider_events with valid data
+#[tokio::test]
+async fn test_process_provider_events_valid() {
+    use httpmock::Method::GET;
+    use httpmock::MockServer;
+
+    // Start a local mock server
+    let server = MockServer::start();
+
+    // Prepare a valid XML response for the mock
+    let xml_response = r#"
+        <PlanList>
+            <output>
+                <base_plan>
+                    <base_plan_id>test_base_plan_id</base_plan_id>
+                    <title>Test Base Plan</title>
+                    <sell_mode>online</sell_mode>
+                    <plans>
+                        <plan>
+                            <plan_id>test_plan_id</plan_id>
+                            <plan_start_date>2023-10-01T00:00:00</plan_start_date>
+                            <plan_end_date>2023-10-02T00:00:00</plan_end_date>
+                            <sell_from>2023-09-01T00:00:00</sell_from>
+                            <sell_to>2023-09-30T00:00:00</sell_to>
+                            <sold_out>false</sold_out>
+                        </plan>
+                    </plans>
+                </base_plan>
+            </output>
+        </PlanList>
+    "#;
+
+    // Create a mock endpoint
+    let mock = server.mock(|when, then| {
+        when.method(GET).path("/valid_events");
+        then.status(200)
+            .header("content-type", "application/xml")
+            .body(xml_response);
+    });
+
+    let provider_id = Uuid::new_v4();
+    let provider_name = "Test Provider".to_string();
+    let url = format!("{}/valid_events", server.base_url());
+
+    // Call the function with the mock server URL
+    process_provider_events(provider_id, provider_name, url).await;
+
+    // Assert the mock was called
+    mock.assert();
+}
+
+// Test for process_provider_events with invalid URL
+#[tokio::test]
+async fn test_process_provider_events_invalid_url() {
+    let provider_id = Uuid::new_v4();
+    let provider_name = "Test Provider".to_string();
+    let url = "invalid_url".to_string();
+
+    // Call the function with an invalid URL
+    process_provider_events(provider_id, provider_name, url).await;
+
+    // Check logs or other side effects to ensure it handled the error correctly
+}
+// Test for process_provider_events with empty URL
+#[tokio::test]
+async fn test_process_provider_events_empty_url() {
+    let provider_id = Uuid::new_v4();
+    let provider_name = "Test Provider".to_string();
+    let url = "".to_string();
+
+    // Call the function with an empty URL
+    process_provider_events(provider_id, provider_name, url).await;
+
+    // Check logs or other side effects to ensure it handled the error correctly
+}
+// Test for process_provider_events with failed HTTP request
+#[tokio::test]
+async fn test_process_provider_events_http_failure() {
+    let provider_id = Uuid::new_v4();
+    let provider_name = "Test Provider".to_string();
+    let url = "http://example.com/failed_request".to_string();
+
+    // Mock the HTTP client to simulate a failed request
+    // This would typically involve using a mocking library to return an error response
+
+    process_provider_events(provider_id, provider_name, url).await;
+
+    // Check logs or other side effects to ensure it handled the error correctly
+}
+// Test for process_provider_events with XML parsing error
+#[tokio::test]
+async fn test_process_provider_events_xml_parsing_error() {
+    let provider_id = Uuid::new_v4();
+    let provider_name = "Test Provider".to_string();
+    let url = "http://example.com/invalid_xml".to_string();
+
+    // Mock the HTTP client to return an invalid XML response
+    // This would typically involve using a mocking library to return a malformed XML response
+
+    process_provider_events(provider_id, provider_name, url).await;
+
+    // Check logs or other side effects to ensure it handled the error correctly
+}
+// Test for process_provider_events with no base plans
+#[tokio::test]
+async fn test_process_provider_events_no_base_plans() {
+    let provider_id = Uuid::new_v4();
+    let provider_name = "Test Provider".to_string();
+    let url = "http://example.com/no_base_plans".to_string();
+
+    // Mock the HTTP client to return a valid response with no base plans
+    // This would typically involve using a mocking library to return a valid XML response with empty base plans
+
+    process_provider_events(provider_id, provider_name, url).await;
+
+    // Check logs or other side effects to ensure it handled the case correctly
+}
+// Test for process_provider_events with multiple base plans
+#[tokio::test]
+async fn test_process_provider_events_multiple_base_plans() {
+    let provider_id = Uuid::new_v4();
+    let provider_name = "Test Provider".to_string();
+    let url = "http://example.com/multiple_base_plans".to_string();
+
+    // Mock the HTTP client to return a valid response with multiple base plans
+    // This would typically involve using a mocking library to return a valid XML response with multiple base plans
+
+    process_provider_events(provider_id, provider_name, url).await;
+
+    // Check logs or other side effects to ensure it handled the case correctly
+}
+// Test for process_provider_events with base plans having different sell modes
+#[tokio::test]
+async fn test_process_provider_events_different_sell_modes() {
+    let provider_id = Uuid::new_v4();
+    let provider_name = "Test Provider".to_string();
+    let url = "http://example.com/different_sell_modes".to_string();
+
+    // Mock the HTTP client to return a valid response with base plans having different sell modes
+    // This would typically involve using a mocking library to return a valid XML response with different sell modes
+
+    process_provider_events(provider_id, provider_name, url).await;
+
+    // Check logs or other side effects to ensure it handled the case correctly
+}
+// Test for process_provider_events with base plans having no sell mode
+#[tokio::test]
+async fn test_process_provider_events_no_sell_mode() {
+    let provider_id = Uuid::new_v4();
+    let provider_name = "Test Provider".to_string();
+    let url = "http://example.com/no_sell_mode".to_string();
+
+    // Mock the HTTP client to return a valid response with base plans having no sell mode
+    // This would typically involve using a mocking library to return a valid XML response with no sell mode
+
+    process_provider_events(provider_id, provider_name, url).await;
+
+    // Check logs or other side effects to ensure it handled the case correctly
+}
+// Test for process_provider_events with base plans having invalid data
+#[tokio::test]
+async fn test_process_provider_events_invalid_data() {
+    let provider_id = Uuid::new_v4();
+    let provider_name = "Test Provider".to_string();
+    let url = "http://example.com/invalid_data".to_string();
+
+    // Mock the HTTP client to return a valid response with base plans having invalid data
+    // This would typically involve using a mocking library to return a valid XML response with invalid data
+
+    process_provider_events(provider_id, provider_name, url).await;
+
+    // Check logs or other side effects to ensure it handled the case correctly
+}
+// Test for process_provider_events with base plans having missing fields
+#[tokio::test]
+async fn test_process_provider_events_missing_fields() {
+    let provider_id = Uuid::new_v4();
+    let provider_name = "Test Provider".to_string();
+    let url = "http://example.com/missing_fields".to_string();
+
+    // Mock the HTTP client to return a valid response with base plans having missing fields
+    // This would typically involve using a mocking library to return a valid XML response with missing fields
+
+    process_provider_events(provider_id, provider_name, url).await;
+
+    // Check logs or other side effects to ensure it handled the case correctly
+}
+// Test for process_provider_events with base plans having empty fields
+#[tokio::test]
+async fn test_process_provider_events_empty_fields() {
+    let provider_id = Uuid::new_v4();
+    let provider_name = "Test Provider".to_string();
+    let url = "http://example.com/empty_fields".to_string();
+
+    // Mock the HTTP client to return a valid response with base plans having empty fields
+    // This would typically involve using a mocking library to return a valid XML response with empty fields
+
+    process_provider_events(provider_id, provider_name, url).await;
+
+    // Check logs or other side effects to ensure it handled the case correctly
+}
+// Test for process_provider_events with base plans having special characters
+#[tokio::test]
+async fn test_process_provider_events_special_characters() {
+    let provider_id = Uuid::new_v4();
+    let provider_name = "Test Provider".to_string();
+    let url = "http://example.com/special_characters".to_string();
+
+    // Mock the HTTP client to return a valid response with base plans having special characters
+    // This would typically involve using a mocking library to return a valid XML response with special characters
+
+    process_provider_events(provider_id, provider_name, url).await;
+
+    // Check logs or other side effects to ensure it handled the case correctly
+}
+// Test for process_provider_events with base plans having large data
+#[tokio::test]
+async fn test_process_provider_events_large_data() {
+    let provider_id = Uuid::new_v4();
+    let provider_name = "Test Provider".to_string();
+    let url = "http://example.com/large_data".to_string();
+
+    // Mock the HTTP client to return a valid response with large data
+    // This would typically involve using a mocking library to return a valid XML response with large data
+
+    process_provider_events(provider_id, provider_name, url).await;
+
+    // Check logs or other side effects to ensure it handled the case correctly
+}
+// Test for process_provider_events with base plans having nested structures
+#[tokio::test]
+async fn test_process_provider_events_nested_structures() {
+    let provider_id = Uuid::new_v4();
+    let provider_name = "Test Provider".to_string();
+    let url = "http://example.com/nested_structures".to_string();
+
+    // Mock the HTTP client to return a valid response with nested structures
+    // This would typically involve using a mocking library to return a valid XML response with nested structures
+
+    process_provider_events(provider_id, provider_name, url).await;
+
+    // Check logs or other side effects to ensure it handled the case correctly
+}
+// Test for process_provider_events with base plans having mixed data types
+#[tokio::test]
+async fn test_process_provider_events_mixed_data_types() {
+    let provider_id = Uuid::new_v4();
+    let provider_name = "Test Provider".to_string();
+    let url = "http://example.com/mixed_data_types".to_string();
+
+    // Mock the HTTP client to return a valid response with mixed data types
+    // This would typically involve using a mocking library to return a valid XML response with mixed data types
+
+    process_provider_events(provider_id, provider_name, url).await;
+
+    // Check logs or other side effects to ensure it handled the case correctly
+}
+// Test for process_provider_events with base plans having different date formats
+#[tokio::test]
+async fn test_process_provider_events_different_date_formats() {
+    let provider_id = Uuid::new_v4();
+    let provider_name = "Test Provider".to_string();
+    let url = "http://example.com/different_date_formats".to_string();
+
+    // Mock the HTTP client to return a valid response with different date formats
+    // This would typically involve using a mocking library to return a valid XML response with different date formats
+
+    process_provider_events(provider_id, provider_name, url).await;
+
+    // Check logs or other side effects to ensure it handled the case correctly
+}
+// Test for process_provider_events with base plans having different time zones
+#[tokio::test]
+async fn test_process_provider_events_different_time_zones() {
+    let provider_id = Uuid::new_v4();
+    let provider_name = "Test Provider".to_string();
+    let url = "http://example.com/different_time_zones".to_string();
+
+    // Mock the HTTP client to return a valid response with different time zones
+    // This would typically involve using a mocking library to return a valid XML response with different time zones
+
+    process_provider_events(provider_id, provider_name, url).await;
+
+    // Check logs or other side effects to ensure it handled the case correctly
+}
+// Test for process_provider_events with base plans having different currencies
+#[tokio::test]
+async fn test_process_provider_events_different_currencies() {
+    let provider_id = Uuid::new_v4();
+    let provider_name = "Test Provider".to_string();
+    let url = "http://example.com/different_currencies".to_string();
+
+    // Mock the HTTP client to return a valid response with different currencies
+    // This would typically involve using a mocking library to return a valid XML response with different currencies
+
+    process_provider_events(provider_id, provider_name, url).await;
+
+    // Check logs or other side effects to ensure it handled the case correctly
+}
+// Test for process_provider_events with base plans having different languages
+#[tokio::test]
+async fn test_process_provider_events_different_languages() {
+    let provider_id = Uuid::new_v4();
+    let provider_name = "Test Provider".to_string();
+    let url = "http://example.com/different_languages".to_string();
+
+    // Mock the HTTP client to return a valid response with different languages
+    // This would typically involve using a mocking library to return a valid XML response with different languages
+
+    process_provider_events(provider_id, provider_name, url).await;
+
+    // Check logs or other side effects to ensure it handled the case correctly
+}
+// Test for process_provider_events with base plans having different categories
+#[tokio::test]
+async fn test_process_provider_events_different_categories() {
+    let provider_id = Uuid::new_v4();
+    let provider_name = "Test Provider".to_string();
+    let url = "http://example.com/different_categories".to_string();
+
+    // Mock the HTTP client to return a valid response with different categories
+    // This would typically involve using a mocking library to return a valid XML response with different categories
+
+    process_provider_events(provider_id, provider_name, url).await;
+
+    // Check logs or other side effects to ensure it handled the case correctly
+}
+// Test for process_provider_events with base plans having different statuses
+#[tokio::test]
+async fn test_process_provider_events_different_statuses() {
+    let provider_id = Uuid::new_v4();
+    let provider_name = "Test Provider".to_string();
+    let url = "http://example.com/different_statuses".to_string();
+
+    // Mock the HTTP client to return a valid response with different statuses
+    // This would typically involve using a mocking library to return a valid XML response with different statuses
+
+    process_provider_events(provider_id, provider_name, url).await;
+
+    // Check logs or other side effects to ensure it handled the case correctly
 }

@@ -34,6 +34,7 @@ impl Cache {
 
     pub async fn cache_plan_dates(
         &self,
+        event_base_id: String,
         event_plan_id: String,
         start_date: chrono::NaiveDateTime,
         end_date: chrono::NaiveDateTime,
@@ -42,12 +43,20 @@ impl Cache {
         pipe.cmd("ZADD")
             .arg("start_date")
             .arg(start_date.and_utc().timestamp())
-            .arg(event_plan_id.clone());
+            .arg(format!(
+                "{}:{}",
+                event_base_id.clone(),
+                event_plan_id.clone()
+            ));
 
         pipe.cmd("ZADD")
             .arg("end_date")
             .arg(end_date.and_utc().timestamp())
-            .arg(event_plan_id.clone());
+            .arg(format!(
+                "{}:{}",
+                event_base_id.clone(),
+                event_plan_id.clone()
+            ));
 
         pipe.query_async::<_, ()>(&mut conn)
             .await
