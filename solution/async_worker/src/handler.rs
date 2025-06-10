@@ -271,17 +271,13 @@ async fn persist_plans(
                     inserted_plan.event_plan_id
                 );
 
-                let event_plan_id_for_cache = &inserted_plan.event_plan_id;
-                let plan_start_date_for_cache = &inserted_plan.plan_start_date;
-                let plan_end_date_for_cache = &inserted_plan.plan_end_date;
-
-                 // Cache ONLY plans that are associated with a base_plan where sell mode is 'online'
+                // Cache ONLY plans that are associated to a base_plan with sell mode = 'online'
                 if sell_mode == Some(SellModeEnum::Online) {
                     if let Err(e) = redis_conn
                         .cache_plan_dates(
-                            event_plan_id_for_cache.to_string(),
-                            *plan_start_date_for_cache,
-                            *plan_end_date_for_cache,
+                            inserted_plan.event_plan_id.to_string(),
+                            inserted_plan.plan_start_date,
+                            inserted_plan.plan_end_date,
                         )
                         .await
                     {
