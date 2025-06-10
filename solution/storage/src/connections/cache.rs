@@ -44,8 +44,8 @@ impl Cache {
         Ok(Self { conn })
     }
 
-    /// Returns a Redis async pipeline and a cloned connection for use in async contexts.
-    pub async fn pipeline(&self) -> (Pipeline, redis::aio::MultiplexedConnection) {
+    // Returns a Redis async pipeline and a cloned connection for use in async contexts.
+    async fn pipeline(&self) -> (Pipeline, redis::aio::MultiplexedConnection) {
         (redis::pipe(), self.conn.clone())
     }
 
@@ -84,17 +84,16 @@ impl Cache {
         &self,
         filter_query: FilterQuery,
     ) -> Result<Vec<ProviderABaseEvent>, CacheError> {
-        let mut conn = self.conn.clone();
         let start_timestamp = filter_query.starts_at.and_utc().timestamp();
         let end_timestamp = filter_query.ends_at.and_utc().timestamp();
 
-        let mut pipe = redis::pipe();
+        let (mut pipe, mut conn) = self.pipeline().await;
         pipe.cmd("ZRANGEBYSCORE")
-            .arg("event_start")
+            .arg("start_date")
             .arg(start_timestamp)
             .arg("+inf");
         pipe.cmd("ZRANGEBYSCORE")
-            .arg("event_end")
+            .arg("end_date")
             .arg("-inf")
             .arg(end_timestamp);
 
@@ -104,15 +103,15 @@ impl Cache {
                 CacheError::Error(format!("Redis error: {}", e))
             })?;
 
-        let event_ids: HashSet<_> = start_event_ids.into_iter().collect();
-        let event_ids: HashSet<_> = event_ids
+        let matched_event_ids: HashSet<_> = start_event_ids.into_iter().collect();
+        let matched_event_ids: HashSet<_> = matched_event_ids
             .intersection(&end_event_ids.into_iter().collect())
             .cloned()
             .collect();
 
         let mut base_events = HashMap::new();
 
-        for event_id in event_ids {
+        for event_id in matched_event_ids {
             let base_ids = self.get_base_ids(&event_id).await?;
             let base_event_data_list = self.get_base_event_data(&base_ids).await?;
             for base_event_data in base_event_data_list {
