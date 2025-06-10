@@ -6,8 +6,7 @@ use storage::error::StorageError;
 use tokio::sync::Mutex;
 use webapp::service::get_full_health;
 use webapp::service::get_health;
-use webapp::service::get_key_value;
-use webapp::service::set_key_value;
+use webapp::service::search_available_events;
 
 mod config;
 mod service;
@@ -38,8 +37,7 @@ async fn main() -> Result<()> {
             .app_data(app_data.clone())
             .service(web::resource("/health").route(web::get().to(get_health)))
             .service(web::resource("/health/full").route(web::get().to(get_full_health)))
-            .service(web::resource("/set").route(web::get().to(set_key_value)))
-            .service(web::resource("/get").route(web::get().to(get_key_value)))
+            .service(web::resource("/search").route(web::get().to(search_available_events)))
     })
     .client_disconnect_timeout(std::time::Duration::from_millis(
         config.actix_client_shutdown_ms as u64,
