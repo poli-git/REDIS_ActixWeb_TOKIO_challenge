@@ -8,7 +8,6 @@ use storage::connections::cache::Cache;
 
 use chrono::NaiveDateTime;
 
-
 #[derive(Serialize, Deserialize)]
 pub struct HealthResponse {
     status: String,
@@ -45,24 +44,23 @@ pub async fn search_available_events(
     state: web::Data<Mutex<Cache>>,
     req: Query<GetSearchRequest>,
 ) -> impl Responder {
-
-    let cache = state.lock().await;
-
-
-
     // Parse the input dates
     let starts_at = match NaiveDateTime::parse_from_str(&req.starts_at, "%Y-%m-%dT%H:%M:%S") {
         Ok(dt) => dt,
         Err(_) => {
-            return HttpResponse::BadRequest().body("Invalid starts_at format. Use %Y-%m-%dT%H:%M:%S");
+            return HttpResponse::BadRequest()
+                .body("Invalid starts_at format. Use %Y-%m-%dT%H:%M:%S");
         }
     };
     let ends_at = match NaiveDateTime::parse_from_str(&req.ends_at, "%Y-%m-%dT%H:%M:%S") {
         Ok(dt) => dt,
         Err(_) => {
-            return HttpResponse::BadRequest().body("Invalid ends_at format. Use %Y-%m-%dT%H:%M:%S");
+            return HttpResponse::BadRequest()
+                .body("Invalid ends_at format. Use %Y-%m-%dT%H:%M:%S");
         }
     };
+
+    let cache = state.lock().await;
 
     // Assuming get_matched_events returns a Future<Result<Vec<Event>, Error>>, await it.
     match cache.get_matched_events(starts_at, ends_at).await {

@@ -18,7 +18,7 @@ pub struct Cache {
 #[derive(Serialize, Deserialize, Clone)]
 pub struct ProviderABaseEvent {
     pub base_event_id: String,
-    // ... other fields ...
+    pub event_id: String,
 }
 
 pub struct FilterQuery {
@@ -85,8 +85,9 @@ impl Cache {
         start_timestamp: NaiveDateTime,
         end_timestamp: NaiveDateTime,
     ) -> Result<Vec<ProviderABaseEvent>, CacheError> {
-       
         let (mut pipe, mut conn) = self.pipeline().await;
+
+        // Get from sorted Set events start after start_timestamp and events end before end_timestamp
         pipe.cmd("ZRANGEBYSCORE")
             .arg("start_date")
             .arg(start_timestamp.and_utc().timestamp())
@@ -102,6 +103,7 @@ impl Cache {
                 CacheError::Error(format!("Redis error: {}", e))
             })?;
 
+        // Computational Intersection instead of ZINTERSTORE to avoid blocking the Redis server
         let matched_event_ids: HashSet<_> = start_event_ids.into_iter().collect();
         let matched_event_ids: HashSet<_> = matched_event_ids
             .intersection(&end_event_ids.into_iter().collect())
@@ -111,34 +113,28 @@ impl Cache {
         let mut base_events = HashMap::new();
 
         for event_id in matched_event_ids {
-            let base_ids = self.get_base_ids(&event_id).await?;
-            let base_event_data_list = self.get_base_event_data(&base_ids).await?;
-            for base_event_data in base_event_data_list {
-                if let Ok(base_event) =
-                    serde_json::from_slice::<ProviderABaseEvent>(&base_event_data)
-                {
-                    base_events.insert(base_event.base_event_id.clone(), base_event);
-                }
+            let parts: Vec<&str> = event_id.split(':').collect();
+            if parts.len() != 2 {
+                error!("Invalid event ID format: {}", event_id);
+                continue;
             }
+            let base_id = parts[0].to_string();
+            let plan_id = parts[1].to_string();
+            let base_id_clone = base_id.clone();
+
+            base_events
+                .entry(base_id)
+                .or_insert_with(|| ProviderABaseEvent {
+                    base_event_id: base_id_clone,
+                    event_id: plan_id,
+                    // Initialize other fields as needed
+                });
         }
 
         Ok(base_events.into_values().collect())
     }
 
-    async fn get_base_ids(&self, event_id: &str) -> Result<HashSet<String>, CacheError> {
-        let mut conn = self.conn.clone();
-        let mut base_ids = HashSet::new();
-        let pattern = format!("{}:*:{}", ROOT_KEY, event_id);
-
-        let mut iter = conn.scan_match::<String, String>(pattern).await?;
-        while let Some(base_id) = iter.next_item().await {
-            if let Some(id) = base_id.split(':').nth(1) {
-                base_ids.insert(id.to_string());
-            }
-        }
-        Ok(base_ids)
-    }
-    async fn get_base_event_data(
+    /* async fn get_base_event_data(
         &self,
         base_ids: &HashSet<String>,
     ) -> Result<Vec<Vec<u8>>, CacheError> {
@@ -155,7 +151,7 @@ impl Cache {
             }
         }
         Ok(result)
-    }
+    } */
 
     /// Get a value by key from redis.
     pub async fn get(&self, key: String) -> CacheResult<String> {

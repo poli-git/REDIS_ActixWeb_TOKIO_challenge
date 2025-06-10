@@ -5,7 +5,16 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 #[derive(
-    Debug, Serialize, Deserialize, Associations, Identifiable, Queryable, PartialEq, Clone,
+    Insertable,
+    Debug,
+    Serialize,
+    Deserialize,
+    Associations,
+    Identifiable,
+    Queryable,
+    PartialEq,
+    Clone,
+    Selectable,
 )]
 #[diesel(belongs_to(Plan, foreign_key = plans_id))]
 #[diesel(table_name = zones)] // Updated attribute or Diesel
