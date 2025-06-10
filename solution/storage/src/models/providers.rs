@@ -35,7 +35,8 @@ pub struct Provider {
     pub updated_at: chrono::NaiveDateTime,
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone, Insertable)]
+#[diesel(table_name = providers)]
 pub struct NewProvider {
     pub providers_id: Uuid,
     pub name: String,

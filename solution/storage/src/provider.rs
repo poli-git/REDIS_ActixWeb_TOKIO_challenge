@@ -14,6 +14,33 @@ pub fn get_active_providers(
         .load::<Provider>(connection)
         .map_err(StorageError::from)
 }
+pub fn add_or_update_provider(
+    connection: &mut PgPooledConnection,
+    new_provider: NewProvider,
+) -> Result<Provider, StorageError> {
+    diesel::insert_into(providers::table)
+        .values(&new_provider)
+        .on_conflict(providers::providers_id)
+        .do_update()
+        .set((
+            providers::name.eq(&new_provider.name),
+            providers::is_active.eq(&new_provider.is_active),
+            providers::updated_at.eq(diesel::dsl::now), // Use current time for updated_at
+        ))
+        .get_result(connection)
+        .map_err(StorageError::from)
+}
+// This function retrieves a provider by its ID
+pub fn get_provider_by_id(
+    connection: &mut PgPooledConnection,
+    provider_id: uuid::Uuid,
+) -> Result<Option<Provider>, StorageError> {
+    providers::table
+        .filter(providers::providers_id.eq(provider_id))
+        .first::<Provider>(connection)
+        .optional()
+        .map_err(StorageError::from)
+}
 
 #[cfg(test)]
 mod tests {
