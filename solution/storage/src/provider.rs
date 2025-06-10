@@ -57,5 +57,5 @@ mod tests {
         let result = get_active_providers(&mut pg_pool).expect("Expected Ok result");
         // This just checks that the result is a Vec (could be empty)
         assert!(result.is_empty() || !result.is_empty());
-    }    
+    }
 }

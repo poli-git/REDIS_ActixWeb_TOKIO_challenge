@@ -9,7 +9,12 @@ use quick_xml::de::from_str;
 use storage::base_plan::add_or_update_base_plan;
 use storage::models::base_plans::NewBasePlan;
 use storage::models::plans::NewPlan;
+use storage::models::zones::NewZone;
+use storage::models::zones::Zone;
 use storage::plan::add_or_update_plan;
+use storage::zone::add_or_update_zone;
+use storage::connections::db::PgPooledConnection;
+use storage::connections::cache::Cache;
 use uuid::Uuid;
 
 pub async fn process_provider_events(provider_id: Uuid, provider_name: String, url: String) {
@@ -222,8 +227,8 @@ async fn persist_plans(
     sell_mode: Option<SellModeEnum>,
     base_plans_id: uuid::Uuid,
     event_base_id: &str,
-    pg_pool: &mut storage::connections::db::PgPooledConnection,
-    redis_conn: &storage::connections::cache::Cache,
+    pg_pool: &mut PgPooledConnection,
+    redis_conn: &Cache,
 ) -> Result<(), PersistPlansError> {
     if bp_plans.is_empty() {
         log::warn!("No plans found for base_plan ID: {}", base_plans_id);
@@ -291,11 +296,79 @@ async fn persist_plans(
                         return Err(PersistPlansError::RedisError(e.to_string()));
                     }
                 }
+                let zones_vec: Vec<Zone> = plan
+                    .zones
+                    .as_ref()
+                    .map(|zones: &Vec<Zone>| {
+                        zones.iter().map(|z: &Zone| Zone {
+                            zones_id: z.zones_id,
+                            plans_id: z.plans_id,
+                            event_zone_id: z.event_zone_id.clone(),
+                            name: z.name.clone(),
+                            capacity: z.capacity.clone(),
+                            price: z.price.clone(),
+                            numbered: z.numbered,
+                            created_at: chrono::Utc::now().naive_utc(),
+                            updated_at: chrono::Utc::now().naive_utc(),
+                        }).collect()
+                    })
+                    .unwrap_or_default();
+                if let Err(e) = persist_zones(&zones_vec, pg_pool).await {
+                    log::error!(
+                        "Failed to persist zones for plan {}: {}",
+                        inserted_plan.plans_id,
+                        e
+                    );
+                    return Err(e);
+                }
             }
             Err(e) => {
                 log::error!(
                     "Failed to add plan for base plan ID {}: {}",
                     base_plans_id,
+                    e
+                );
+                return Err(PersistPlansError::DbError(e.to_string()));
+            }
+        }
+    }
+    Ok(())
+}
+
+async fn persist_zones(
+    zones: &Vec<Zone>,
+    pg_pool: &mut PgPooledConnection,
+) -> Result<(), PersistPlansError> {
+    if zones.is_empty() {
+        log::warn!("No zones to persist for this plan.");
+        return Ok(());
+    }
+    for zone in zones {
+        // Convert Zone to NewZone before calling add_or_update_zone
+        let new_zone = NewZone {
+            zones_id: zone.zones_id,
+            plans_id: zone.plans_id,
+            name: zone.name.clone(),
+            capacity: zone.capacity.clone(),
+            event_zone_id: zone.event_zone_id.clone(),
+            price: zone.price.clone(),
+            numbered: zone.numbered,
+            // Add other fields as required by NewZone struct
+            // e.g. price: zone.price, etc.
+        };
+        match add_or_update_zone(pg_pool, new_zone) {
+            Ok(inserted_zone) => {
+                log::debug!(
+                    "Added/updated zone: {} for plan: {}",
+                    inserted_zone.zones_id,
+                    inserted_zone.plans_id
+                );
+            }
+            Err(e) => {
+                log::error!(
+                    "Failed to add/update zone {} for plan {}: {}",
+                    zone.zones_id,
+                    zone.plans_id,
                     e
                 );
                 return Err(PersistPlansError::DbError(e.to_string()));
