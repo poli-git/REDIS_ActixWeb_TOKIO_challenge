@@ -224,14 +224,14 @@ async fn persist_plans(
     redis_conn: &storage::connections::cache::Cache,
 ) -> Result<(), PersistPlansError> {
     if bp_plans.is_empty() {
-        log::warn!("No plans found for base plan ID: {}", base_plans_id);
+        log::warn!("No plans found for base_plan ID: {}", base_plans_id);
         return Err(PersistPlansError::NotFound(format!(
-            "No plans found for base plan ID: {}",
+            "No plans found for base_plan ID: {}",
             base_plans_id
         )));
     }
     log::debug!(
-        "Persisting {} plans for base plan ID: {}",
+        "Persisting {} plans for base_plan ID: {}",
         bp_plans.len(),
         base_plans_id
     );
@@ -275,6 +275,7 @@ async fn persist_plans(
                 let plan_start_date_for_cache = &inserted_plan.plan_start_date;
                 let plan_end_date_for_cache = &inserted_plan.plan_end_date;
 
+                 // Cache ONLY plans that are associated with a base_plan where sell mode is 'online'
                 if sell_mode == Some(SellModeEnum::Online) {
                     if let Err(e) = redis_conn
                         .cache_plan_dates(
