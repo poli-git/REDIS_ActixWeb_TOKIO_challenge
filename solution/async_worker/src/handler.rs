@@ -307,9 +307,6 @@ async fn persist_plans(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use async_worker::xml_models::PlanList;
-    use storage::base_plan::add_or_update_base_plan;
-    use storage::plan::add_or_update_plan;
 
     #[tokio::test]
     async fn test_process_provider_events() {
@@ -344,7 +341,7 @@ async fn test_persist_plans() {
     let base_plans_id = Uuid::new_v4();
     let event_base_id = "test_event_base_id";
     let pool = storage::connections::db::establish_connection().await;
-    let mut pg_pool = pool.get().unwrap();
+    let mut pg_pool = pool.get().expect("Failed to get DB connection for test");
     let redis_conn = get_cache().await;
 
     let bp_plans = vec![async_worker::xml_models::Plan {
@@ -414,7 +411,7 @@ async fn test_persist_plans_invalid_dates() {
         Some(SellModeEnum::Online),
         base_plans_id,
         event_base_id,
-        pg_pool,
+        &mut pg_pool,
         &redis_conn,
     )
     .await;
