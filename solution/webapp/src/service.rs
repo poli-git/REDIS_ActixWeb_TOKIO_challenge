@@ -1,12 +1,14 @@
-use tokio::sync::Mutex;
-
 use actix_web::{web, HttpRequest, HttpResponse, Responder};
 use actix_web::{web::Json, web::Query, Result};
+use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 use storage::connections::cache::is_healthy;
 use storage::connections::cache::Cache;
+use tokio::sync::Mutex;
 
-use chrono::NaiveDateTime;
+// use webapp::errors::ErrorResponse;
+use crate::errors::ErrorResponse;
+
 
 #[derive(Serialize, Deserialize)]
 pub struct HealthResponse {
@@ -44,27 +46,23 @@ pub async fn search_available_events(
     state: web::Data<Mutex<Cache>>,
     req: Query<GetSearchRequest>,
 ) -> impl Responder {
-    // Parse the input dates
     let starts_at = match NaiveDateTime::parse_from_str(&req.starts_at, "%Y-%m-%dT%H:%M:%S") {
         Ok(dt) => dt,
         Err(_) => {
-            return HttpResponse::BadRequest()
-                .body("Invalid starts_at format. Use %Y-%m-%dT%H:%M:%S");
+            return ErrorResponse::bad_request("Invalid starts_at format. Use %Y-%m-%dT%H:%M:%S");
         }
     };
     let ends_at = match NaiveDateTime::parse_from_str(&req.ends_at, "%Y-%m-%dT%H:%M:%S") {
         Ok(dt) => dt,
         Err(_) => {
-            return HttpResponse::BadRequest()
-                .body("Invalid ends_at format. Use %Y-%m-%dT%H:%M:%S");
+            return ErrorResponse::bad_request("Invalid ends_at format. Use %Y-%m-%dT%H:%M:%S");
         }
     };
 
     let cache = state.lock().await;
 
-    // Assuming get_matched_events returns a Future<Result<Vec<Event>, Error>>, await it.
     match cache.get_matched_plans(starts_at, ends_at).await {
         Ok(events) => HttpResponse::Ok().json(events),
-        Err(_) => HttpResponse::InternalServerError().body("Failed to fetch events"),
+        Err(_) => ErrorResponse::internal_error("Failed to fetch events"),
     }
 }
