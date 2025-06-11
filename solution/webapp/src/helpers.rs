@@ -29,6 +29,15 @@ pub fn map_provider_events_to_response_dto(
 ) -> ApiResponse<EventsData> {
     let mut events_data = Vec::new();
 
+    if base_events.is_empty() {
+        return ApiResponse {
+            data: EventsData {
+                events: events_data,
+            },
+            error: None,
+        };
+    }
+    // Iterate over each base event and extract relevant data
     for base_event in base_events {
         let plan = &base_event.plan;
 
@@ -46,6 +55,7 @@ pub fn map_provider_events_to_response_dto(
         let min_price = prices.iter().cloned().fold(f64::INFINITY, f64::min);
         let max_price = prices.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
 
+        // Create EventDTO and push to the events_data vector        
         events_data.push(EventDTO {
             id: base_event.id.clone(),
             title: base_event.title.clone(),
@@ -58,6 +68,7 @@ pub fn map_provider_events_to_response_dto(
         });
     }
 
+    // Return the ApiResponse with the events data
     ApiResponse {
         data: EventsData {
             events: events_data,
