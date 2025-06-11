@@ -4,7 +4,6 @@ use dotenv::dotenv;
 use storage::connections::cache::Cache;
 use storage::error::StorageError;
 use tokio::sync::Mutex;
-use webapp::service::get_full_health;
 use webapp::service::get_health;
 use webapp::service::search_available_events;
 
@@ -38,7 +37,6 @@ async fn main() -> Result<()> {
         App::new()
             .app_data(app_data.clone())
             .service(web::resource("/health").route(web::get().to(get_health)))
-            .service(web::resource("/health/full").route(web::get().to(get_full_health)))
             .service(web::resource("/search").route(web::get().to(search_available_events)))
     })
     .client_disconnect_timeout(std::time::Duration::from_millis(

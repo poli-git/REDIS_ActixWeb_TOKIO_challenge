@@ -26,45 +26,46 @@ pub async fn get_health(_req: HttpRequest) -> Result<Json<HealthResponse>> {
     }))
 }
 
-/// Extended healthcheck to get more information about the healthiness of
-/// dependent services.
-pub async fn get_full_health(state: web::Data<Mutex<Cache>>) -> impl Responder {
-    let cache = state.lock().await;
-    let cache_healthy = is_healthy(&cache).await;
-
-    if cache_healthy {
-        HttpResponse::Ok().body("Full health: OK")
-    } else {
-        return ErrorResponse::service_unavailable("Full health: Redis unavailable");
-    }
-}
-
 /// Search for available events based on the provided time range.
 pub async fn search_available_events(
     state: web::Data<Mutex<Cache>>,
     req: Query<GetSearchRequest>,
 ) -> impl Responder {
+    // Validate the time range
+    if req.starts_at.is_empty() || req.ends_at.is_empty() {
+        return ErrorResponse::bad_request("Both starts_at and ends_at must be provided.");
+    }
+    if req.starts_at >= req.ends_at {
+        return ErrorResponse::bad_request("starts_at must be before ends_at.");
+    }
+    // Parse the datetime strings
     let starts_at = match NaiveDateTime::parse_from_str(&req.starts_at, "%Y-%m-%dT%H:%M:%S") {
         Ok(dt) => dt,
         Err(_) => {
             return ErrorResponse::bad_request("Invalid starts_at format. Use %Y-%m-%dT%H:%M:%S");
         }
     };
-
     let ends_at = match NaiveDateTime::parse_from_str(&req.ends_at, "%Y-%m-%dT%H:%M:%S") {
         Ok(dt) => dt,
         Err(_) => {
             return ErrorResponse::bad_request("Invalid ends_at format. Use %Y-%m-%dT%H:%M:%S");
         }
     };
-
+    if starts_at >= ends_at {
+        return ErrorResponse::bad_request("starts_at must be before ends_at.");
+    }
+    // Lock the cache state to ensure thread safety
     let cache = state.lock().await;
-
+    // Check if the cache is healthy
+    if !is_healthy(&cache).await {
+        return ErrorResponse::service_unavailable("Cache is not healthy.");
+    }
+    // Fetch matched plans from the cache
     match cache.get_matched_plans(starts_at, ends_at).await {
         Ok(events) => {
             let response = map_provider_events_to_response_dto(&events);
             HttpResponse::Ok().json(response)
         }
-        Err(_) => HttpResponse::InternalServerError().body("Failed to fetch events"),
+        Err(_) => ErrorResponse::internal_error("Failed to fetch events"),
     }
 }
