@@ -6,15 +6,15 @@ use reqwest::Client;
 
 use log::{debug, error, info};
 use quick_xml::de::from_str;
+use std::option::Option;
 use storage::base_plan::add_or_update_base_plan;
+use storage::connections::cache::Cache;
+use storage::connections::db::PgPooledConnection;
 use storage::models::base_plans::NewBasePlan;
 use storage::models::plans::NewPlan;
 use storage::models::zones::NewZone;
-use storage::models::zones::Zone;
 use storage::plan::add_or_update_plan;
 use storage::zone::add_or_update_zone;
-use storage::connections::db::PgPooledConnection;
-use storage::connections::cache::Cache;
 use uuid::Uuid;
 
 pub async fn process_provider_events(provider_id: Uuid, provider_name: String, url: String) {
@@ -296,24 +296,24 @@ async fn persist_plans(
                         return Err(PersistPlansError::RedisError(e.to_string()));
                     }
                 }
-                let zones_vec: Vec<Zone> = plan
+
+                // Convert xml_models::Zone to NewZone before persisting
+                let new_zones: Vec<NewZone> = plan
                     .zones
-                    .as_ref()
-                    .map(|zones: &Vec<Zone>| {
-                        zones.iter().map(|z: &Zone| Zone {
-                            zones_id: z.zones_id,
-                            plans_id: z.plans_id,
-                            event_zone_id: z.event_zone_id.clone(),
-                            name: z.name.clone(),
-                            capacity: z.capacity.clone(),
-                            price: z.price.clone(),
-                            numbered: z.numbered,
-                            created_at: chrono::Utc::now().naive_utc(),
-                            updated_at: chrono::Utc::now().naive_utc(),
-                        }).collect()
+                    .iter()
+                    .map(|zone| NewZone {
+                        zones_id: uuid::Uuid::new_v4(),
+                        plans_id: inserted_plan.plans_id,
+                        name: zone.name.clone().unwrap_or_default(),
+                        capacity: zone.capacity.clone().unwrap_or_default(),
+                        event_zone_id: zone.zone_id.clone().unwrap_or_default(),
+                        price: zone.price.clone().unwrap_or_default(),
+                        numbered: zone.numbered.unwrap_or(false),
+                        // Add other fields as required by NewZone struct
                     })
-                    .unwrap_or_default();
-                if let Err(e) = persist_zones(&zones_vec, pg_pool).await {
+                    .collect();
+
+                if let Err(e) = persist_zones(&new_zones, pg_pool).await {
                     log::error!(
                         "Failed to persist zones for plan {}: {}",
                         inserted_plan.plans_id,
@@ -323,11 +323,7 @@ async fn persist_plans(
                 }
             }
             Err(e) => {
-                log::error!(
-                    "Failed to add plan for base plan ID {}: {}",
-                    base_plans_id,
-                    e
-                );
+                log::error!("Failed to add plan: {}", e);
                 return Err(PersistPlansError::DbError(e.to_string()));
             }
         }
@@ -335,8 +331,9 @@ async fn persist_plans(
     Ok(())
 }
 
+// Move persist_zones function here, outside of persist_plans
 async fn persist_zones(
-    zones: &Vec<Zone>,
+    zones: &Vec<NewZone>,
     pg_pool: &mut PgPooledConnection,
 ) -> Result<(), PersistPlansError> {
     if zones.is_empty() {
@@ -344,19 +341,7 @@ async fn persist_zones(
         return Ok(());
     }
     for zone in zones {
-        // Convert Zone to NewZone before calling add_or_update_zone
-        let new_zone = NewZone {
-            zones_id: zone.zones_id,
-            plans_id: zone.plans_id,
-            name: zone.name.clone(),
-            capacity: zone.capacity.clone(),
-            event_zone_id: zone.event_zone_id.clone(),
-            price: zone.price.clone(),
-            numbered: zone.numbered,
-            // Add other fields as required by NewZone struct
-            // e.g. price: zone.price, etc.
-        };
-        match add_or_update_zone(pg_pool, new_zone) {
+        match add_or_update_zone(pg_pool, zone.clone()) {
             Ok(inserted_zone) => {
                 log::debug!(
                     "Added/updated zone: {} for plan: {}",
