@@ -63,7 +63,7 @@ pub async fn search_available_events(
     let cache = state.lock().await;
 
     // Assuming get_matched_events returns a Future<Result<Vec<Event>, Error>>, await it.
-    match cache.get_matched_events(starts_at, ends_at).await {
+    match cache.get_matched_plans(starts_at, ends_at).await {
         Ok(events) => HttpResponse::Ok().json(events),
         Err(_) => HttpResponse::InternalServerError().body("Failed to fetch events"),
     }

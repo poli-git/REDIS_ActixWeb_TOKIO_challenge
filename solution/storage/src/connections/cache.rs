@@ -15,10 +15,44 @@ pub struct Cache {
     pub(super) conn: MultiplexedConnection,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ProviderABaseEvent {
-    pub base_event_id: String,
-    pub event_id: String,
+    pub id: String,
+    pub title: String,
+    pub sell_mode: String,
+    pub plan: Plan,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct Plan {
+    #[serde(rename = "plan_start_date")]
+    pub plan_start_date: String,
+    #[serde(rename = "plan_end_date")]
+    pub plan_end_date: String,
+    #[serde(rename = "plan_id")]
+    pub plan_id: String,
+    #[serde(rename = "sell_from")]
+    pub sell_from: String,
+    #[serde(rename = "sell_to")]
+    pub sell_to: String,
+    #[serde(rename = "sold_out")]
+    pub sold_out: bool,
+    #[serde(rename = "zone")]
+    pub zones: Vec<Zone>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct Zone {
+    #[serde(rename = "zone_id")]
+    pub zone_id: String,
+    #[serde(rename = "capacity")]
+    pub capacity: String,
+    #[serde(rename = "price")]
+    pub price: String,
+    #[serde(rename = "name")]
+    pub name: String,
+    #[serde(rename = "numbered")]
+    pub numbered: bool,
 }
 
 pub struct FilterQuery {
@@ -26,7 +60,7 @@ pub struct FilterQuery {
     pub ends_at: NaiveDateTime,
 }
 
-const ROOT_KEY: &str = "base_plan";
+const ROOT_KEY: &str = "plan";
 
 /// Async Cache implementation for redis
 impl Cache {
@@ -80,8 +114,8 @@ impl Cache {
             .map_err(|e| CacheError::Error(format!("Failed to cache plan dates: {}", e)))
     }
 
-    /// Get from sorted Set events start after start_timestamp and events end before end_timestamp.
-    pub async fn get_matched_events(
+    /// Get from sorted Set plans that start after start_timestamp and plans that end before end_timestamp.
+    pub async fn get_matched_plans(
         &self,
         start_timestamp: NaiveDateTime,
         end_timestamp: NaiveDateTime,
@@ -103,7 +137,23 @@ impl Cache {
                 CacheError::Error(format!("Redis error: {}", e))
             })?;
 
-        // Computational Intersection instead of ZINTERSTORE to avoid blocking the Redis server
+        // Computational Intersection of start and end event IDs
+        if start_event_ids.is_empty() || end_event_ids.is_empty() {
+            return Ok(Vec::new());
+        }
+        // Create a HashSet for start_event_ids for efficient lookup
+        let start_event_ids: HashSet<_> = start_event_ids
+            .into_iter()
+            .map(|id| id.to_string())
+            .collect();
+        // Create a HashSet for end_event_ids for efficient lookup
+        let end_event_ids: HashSet<_> =
+            end_event_ids.into_iter().map(|id| id.to_string()).collect();
+        // Find the intersection of start and end event IDs
+        // This will give us the event IDs that are present in both sets
+        if start_event_ids.is_empty() || end_event_ids.is_empty() {
+            return Ok(Vec::new());
+        }
         let matched_event_ids: HashSet<_> = start_event_ids.into_iter().collect();
         let matched_event_ids: HashSet<_> = matched_event_ids
             .intersection(&end_event_ids.into_iter().collect())
@@ -122,36 +172,62 @@ impl Cache {
             let plan_id = parts[1].to_string();
             let base_id_clone = base_id.clone();
 
-            base_events
-                .entry(base_id)
-                .or_insert_with(|| ProviderABaseEvent {
-                    base_event_id: base_id_clone,
-                    event_id: plan_id,
-                    // Initialize other fields as needed
-                });
-        }
+            let key = format!("{}:{}:{}:{}", ROOT_KEY, "*", base_id, plan_id);
 
-        Ok(base_events.into_values().collect())
-    }
+            let scan_result = self.scan_match_all(&key).await.map_err(|e| {
+                error!("Error scanning for plans in Redis: {}", e);
+                CacheError::Error(format!("Redis scan error: {}", e))
+            })?;
+            if scan_result.is_empty() {
+                error!("No plans found for base ID: {}", base_id);
+                continue;
+            }
+            // Get plans stored in Redis for the given base_id and plan_id
+            // Iterate over the results and deserialize each plan
+            for result in scan_result {
+                if result.trim().is_empty() {
+                    error!("Plan string from Redis is empty for key: {}", key);
+                    continue;
+                }
+                let result_clone = result.clone();
+                let plan = self.get(result).await.map_err(|e| {
+                    error!("Error getting plan from Redis: {}", e);
+                    CacheError::Error(format!("Redis get error: {}", e))
+                })?;
+                if plan.trim().is_empty() {
+                    error!("Plan string is empty for key: {}", result_clone);
+                    continue;
+                }
 
-    /* async fn get_base_event_data(
-        &self,
-        base_ids: &HashSet<String>,
-    ) -> Result<Vec<Vec<u8>>, CacheError> {
-        let mut conn = self.conn.clone();
-        let mut result = Vec::new();
-        for base_id in base_ids {
-            let key = format!("{}:{}", ROOT_KEY, base_id);
-            if let Some(data_bytes) = conn
-                .get(&key)
-                .await
-                .map_err(|e| CacheError::Error(format!("Redis get error: {}", e)))?
-            {
-                result.push(data_bytes);
+                // Remove "@" from all field names before deserialization
+                let plan_json = plan
+                    .replace("\"@plan_start_date\"", "\"plan_start_date\"")
+                    .replace("\"@plan_end_date\"", "\"plan_end_date\"")
+                    .replace("\"@plan_id\"", "\"plan_id\"")
+                    .replace("\"@sell_from\"", "\"sell_from\"")
+                    .replace("\"@sell_to\"", "\"sell_to\"")
+                    .replace("\"@sold_out\"", "\"sold_out\"")
+                    .replace("\"@zone_id\"", "\"zone_id\"")
+                    .replace("\"@capacity\"", "\"capacity\"")
+                    .replace("\"@price\"", "\"price\"")
+                    .replace("\"@name\"", "\"name\"")
+                    .replace("\"@numbered\"", "\"numbered\"");
+
+                let plan: ProviderABaseEvent = serde_json::from_str(&plan_json).map_err(|e| {
+                    error!("Error deserializing plan: {} | raw value: {}", e, plan_json);
+                    CacheError::Error(format!("Deserialization error: {}", e))
+                })?;
+
+                // Insert the plan into the base_events map
+                base_events
+                    .entry(base_id_clone.clone())
+                    .or_insert_with(Vec::new)
+                    .push(plan);
             }
         }
-        Ok(result)
-    } */
+
+        Ok(base_events.into_values().flatten().collect())
+    }
 
     /// Get a value by key from redis.
     pub async fn get(&self, key: String) -> CacheResult<String> {
