@@ -14,6 +14,7 @@ use storage::models::base_plans::NewBasePlan;
 use storage::models::plans::NewPlan;
 use storage::models::zones::NewZone;
 use storage::plan::add_or_update_plan;
+use storage::schema::base_plans::providers_id;
 use storage::zone::add_or_update_zone;
 use uuid::Uuid;
 
@@ -167,21 +168,24 @@ async fn persist_base_plans(
                     inserted.event_base_id,
                     inserted.title
                 );
-                // Cache ONLY base_plan with sell mode = 'online'
-                if inserted.sell_mode == SellModeEnum::Online.to_string() {
-                    log::debug!("Caching full online event: {}", inserted.event_base_id);
 
-                    // Cache online base_plan
+                // Cache ONLY plan dates that are associated to a base_plan with sell mode = 'online'
+                if bp.sell_mode == Some(SellModeEnum::Online) {
+                    // Cache online plan
                     if let Err(e) = redis_conn
                         .set(
-                            format!("base_plan:{}:{}", provider_id, inserted.event_base_id),
-                            serde_json::to_string(&bp).unwrap_or_default(),
+                            format!(
+                                "base_plan:{}:{}",
+                                provider_id, bp.base_plan_id.clone().unwrap_or_default()
+                            ),
+                            serde_json::to_string(&plan).unwrap_or_default(),
                         )
                         .await
                     {
                         log::error!(
-                            "Failed to cache online base_plan {}: {}",
-                            inserted.event_base_id,
+                            "Failed to cache online base_plan {}:{}: {}",
+                            provider_id,
+                            event_base_id,                            
                             e
                         );
                     }
@@ -192,6 +196,7 @@ async fn persist_base_plans(
                     bp.sell_mode.as_ref().cloned(),
                     inserted.base_plans_id,
                     &inserted.event_base_id,
+                    inserted.providers_id,
                     &mut pg_pool,
                     &redis_conn,
                 )
@@ -227,6 +232,7 @@ async fn persist_plans(
     sell_mode: Option<SellModeEnum>,
     base_plans_id: uuid::Uuid,
     event_base_id: &str,
+    provider_id: uuid::Uuid,
     pg_pool: &mut PgPooledConnection,
     redis_conn: &Cache,
 ) -> Result<(), PersistPlansError> {
@@ -295,8 +301,32 @@ async fn persist_plans(
                         );
                         return Err(PersistPlansError::RedisError(e.to_string()));
                     }
+                    log::debug!(
+                        "Caching full online event: {}:{}:{}",
+                        provider_id,
+                        event_base_id,
+                        inserted_plan.event_plan_id
+                    );
+                    // Cache online plan
+                    if let Err(e) = redis_conn
+                        .set(
+                            format!(
+                                "plan:{}:{}:{}",
+                                provider_id, event_base_id, inserted_plan.event_plan_id
+                            ),
+                            serde_json::to_string(&plan).unwrap_or_default(),
+                        )
+                        .await
+                    {
+                        log::error!(
+                            "Failed to cache online base_plan {}:{}:{}: {}",
+                            provider_id,
+                            event_base_id,
+                            inserted_plan.event_plan_id,
+                            e
+                        );
+                    }
                 }
-
                 // Convert xml_models::Zone to NewZone before persisting
                 let new_zones: Vec<NewZone> = plan
                     .zones
