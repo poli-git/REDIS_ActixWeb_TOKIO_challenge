@@ -9,6 +9,8 @@ use webapp::service::get_health;
 use webapp::service::search_available_events;
 
 mod config;
+mod errors;
+mod helpers;
 mod service;
 
 async fn get_cache() -> Cache {
