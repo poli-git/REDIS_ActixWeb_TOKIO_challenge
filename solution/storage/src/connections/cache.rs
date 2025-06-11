@@ -2,11 +2,11 @@ use crate::error::{CacheError, CacheResult};
 use chrono::NaiveDateTime;
 use dotenv::dotenv;
 use futures::{stream, StreamExt};
-use log::error;
+use log::{error, info};
 use redis::Client;
 use redis::FromRedisValue;
 use redis::Pipeline;
-use redis::{aio::MultiplexedConnection, AsyncCommands, ToRedisArgs};
+use redis::{aio::MultiplexedConnection, AsyncCommands};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::env;
@@ -174,7 +174,7 @@ impl Cache {
 
             let key = format!("{}:{}:{}:{}", ROOT_KEY, "*", base_id, plan_id);
 
-            let scan_result = self.scan_match_all(&key).await.map_err(|e| {
+            let scan_result = self.get_keys_matching_pattern(&key).await.map_err(|e| {
                 error!("Error scanning for plans in Redis: {}", e);
                 CacheError::Error(format!("Redis scan error: {}", e))
             })?;
@@ -182,6 +182,7 @@ impl Cache {
                 error!("No plans found for base ID: {}", base_id);
                 continue;
             }
+
             // Get plans stored in Redis for the given base_id and plan_id
             // Iterate over the results and deserialize each plan
             for result in scan_result {
@@ -229,6 +230,27 @@ impl Cache {
         Ok(base_events.into_values().flatten().collect())
     }
 
+    /// Scan for all keys matching the given pattern and return them as Vec<String>
+    pub async fn get_keys_matching_pattern(
+        &self,
+        pattern: &str,
+    ) -> Result<Vec<String>, CacheError> {
+        let mut conn = self.conn.clone();
+        let mut keys = Vec::new();
+        let mut iter: redis::AsyncIter<String> = conn
+            .scan_match(pattern)
+            .await
+            .map_err(|_| CacheError::CannotScan(pattern.to_string()))?;
+
+        let mut seen = HashSet::new();
+        while let Some(key) = iter.next_item().await {
+            if seen.insert(key.clone()) {
+                keys.push(key);
+            }
+        }
+        Ok(keys)
+    }
+
     /// Get a value by key from redis.
     pub async fn get(&self, key: String) -> CacheResult<String> {
         let mut conn = self.conn.clone();
@@ -243,22 +265,6 @@ impl Cache {
         conn.set(key.clone(), value)
             .await
             .map_err(|_| CacheError::CannotSet(key))
-    }
-
-    /// Scan for any keys that match the given pattern.
-    pub async fn scan_match_all(&self, pattern: &str) -> CacheResult<Vec<String>> {
-        let mut conn = self.conn.clone();
-        let keys = conn
-            .scan_match(pattern)
-            .await
-            .map_err(|_| CacheError::CannotScan(pattern.to_string()))?;
-        let keys = stream::unfold(keys, |mut keys| async move {
-            let next = keys.next_item().await;
-            next.map(|key| (key, keys))
-        })
-        .collect()
-        .await;
-        Ok(keys)
     }
 
     /// Get multiple values from redis. Returns a vec of resulting values.
@@ -327,7 +333,7 @@ pub mod tests {
         }
 
         let pattern = format!("{}.*", key);
-        let keys: Vec<String> = cache.scan_match_all(&pattern).await.unwrap();
+        let keys: Vec<String> = cache.get_keys_matching_pattern(&pattern).await.unwrap();
         assert_eq!(keys.len(), 20);
     }
 }

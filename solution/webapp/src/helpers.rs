@@ -1,3 +1,4 @@
+use log::info;
 use serde::Serialize;
 use storage::connections::cache::ProviderABaseEvent;
 
@@ -55,7 +56,7 @@ pub fn map_provider_events_to_response_dto(
         let min_price = prices.iter().cloned().fold(f64::INFINITY, f64::min);
         let max_price = prices.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
 
-        // Create EventDTO and push to the events_data vector        
+        // Create EventDTO and push to the events_data vector
         events_data.push(EventDTO {
             id: base_event.id.clone(),
             title: base_event.title.clone(),
