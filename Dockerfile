@@ -51,6 +51,5 @@ WORKDIR /app
 # Expose port for webapp
 EXPOSE 8080
 
-# Use docker-compose or command override to select which binary to run.
-# By default, run webapp (listening on port 8080)
+# Default command: run webapp (listening on port 8080)
 CMD ["webapp"]
