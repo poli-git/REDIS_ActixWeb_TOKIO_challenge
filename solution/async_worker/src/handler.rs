@@ -313,12 +313,12 @@ async fn persist_plans(
                     })
                     .collect();
 
+                // Persist zones for the plan
                 log::debug!(
-                    "Persisting {:?} zones for plan ID: {}",
-                    new_zones,
+                    "Persisting {} zones for plan ID: {}",
+                    new_zones.len(),
                     inserted_plan.plans_id
                 );
-
                 if let Err(e) = persist_zones(&new_zones, pg_pool).await {
                     log::error!(
                         "Failed to persist zones for plan {}: {}",
