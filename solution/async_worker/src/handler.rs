@@ -368,3 +368,64 @@ async fn persist_zones(
     }
     Ok(())
 }
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use httpmock::prelude::*;
+
+    #[tokio::test]
+    async fn test_persist_base_plans_empty() {
+        let result = persist_base_plans(vec![], Uuid::new_v4(), "TestProvider".to_string()).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_process_provider_events_invalid_url() {
+        // Should error and return early for invalid URL
+        process_provider_events(Uuid::new_v4(), "TestProvider".to_string(), "".to_string()).await;
+        // No panic = pass
+    }
+
+    #[tokio::test]
+    async fn test_process_provider_events_http_mock() {
+        // Start a mock HTTP server
+        let server = MockServer::start();
+        let xml_response = r#"
+            <PlanList>
+                <output>
+                    <base_plan>
+                        <base_plan_id>bp1</base_plan_id>
+                        <title>Test Event</title>
+                        <sell_mode>online</sell_mode>
+                        <plans>
+                            <plan>
+                                <plan_id>plan1</plan_id>
+                                <plan_start_date>2025-06-11T00:00:00</plan_start_date>
+                                <plan_end_date>2025-06-12T00:00:00</plan_end_date>
+                                <zones>
+                                    <zone>
+                                        <zone_id>zone1</zone_id>
+                                        <name>Zone A</name>
+                                        <capacity>100</capacity>
+                                        <price>50</price>
+                                        <numbered>true</numbered>
+                                    </zone>
+                                </zones>
+                            </plan>
+                        </plans>
+                    </base_plan>
+                </output>
+            </PlanList>
+        "#;
+        let _mock = server.mock(|when, then| {
+            when.method(GET).path("/");
+            then.status(200)
+                .header("content-type", "application/xml")
+                .body(xml_response);
+        });
+
+        // Call with mock server URL
+        process_provider_events(Uuid::new_v4(), "TestProvider".to_string(), server.url("/")).await;
+        // No panic = pass
+    }
+}
