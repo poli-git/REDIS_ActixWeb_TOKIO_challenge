@@ -31,6 +31,7 @@ pub fn map_provider_events_to_response_dto(
 
     for base_event in base_events {
         let plan = &base_event.plan;
+
         // Parse start and end datetime
         let (start_date, start_time) = split_datetime(&plan.plan_start_date);
         let (end_date, end_time) = split_datetime(&plan.plan_end_date);
