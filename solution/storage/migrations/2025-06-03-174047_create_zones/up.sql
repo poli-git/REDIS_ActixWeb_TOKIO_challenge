@@ -9,6 +9,7 @@ CREATE TABLE zones (
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
 
-    FOREIGN KEY (plans_id) references plans(plans_id)
+    FOREIGN KEY (plans_id) references plans(plans_id),
+    UNIQUE (plans_id, event_zone_id, numbered)    
     
 );

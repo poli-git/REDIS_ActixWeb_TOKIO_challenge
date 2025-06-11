@@ -18,11 +18,13 @@ pub fn add_or_update_zone(
 ) -> Result<Zone, StorageError> {
     insert_into(zones::table)
         .values(&new_zone)
-        .on_conflict(zones::zones_id)
+        .on_conflict((zones::plans_id, zones::event_zone_id, zones::numbered))
         .do_update()
         .set((
             zones::name.eq(&new_zone.name),
-            zones::updated_at.eq(diesel::dsl::now), // Use current time for updated_at
+            zones::capacity.eq(&new_zone.capacity),
+            zones::price.eq(&new_zone.price),
+            zones::updated_at.eq(diesel::dsl::now),
         ))
         .returning(Zone::as_returning())
         .get_result::<Zone>(connection)

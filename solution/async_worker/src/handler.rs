@@ -308,10 +308,16 @@ async fn persist_plans(
                         capacity: zone.capacity.clone().unwrap_or_default(),
                         event_zone_id: zone.zone_id.clone().unwrap_or_default(),
                         price: zone.price.clone().unwrap_or_default(),
-                        numbered: zone.numbered.unwrap_or(false),
+                        numbered: zone.numbered.unwrap_or_default(),
                         // Add other fields as required by NewZone struct
                     })
                     .collect();
+
+                log::debug!(
+                    "Persisting {:?} zones for plan ID: {}",
+                    new_zones,
+                    inserted_plan.plans_id
+                );
 
                 if let Err(e) = persist_zones(&new_zones, pg_pool).await {
                     log::error!(
