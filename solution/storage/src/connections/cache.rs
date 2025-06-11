@@ -26,7 +26,7 @@ pub struct FilterQuery {
     pub ends_at: NaiveDateTime,
 }
 
-const ROOT_KEY: &str = "base_event";
+const ROOT_KEY: &str = "base_plan";
 
 /// Async Cache implementation for redis
 impl Cache {
@@ -80,6 +80,7 @@ impl Cache {
             .map_err(|e| CacheError::Error(format!("Failed to cache plan dates: {}", e)))
     }
 
+    /// Get from sorted Set events start after start_timestamp and events end before end_timestamp.
     pub async fn get_matched_events(
         &self,
         start_timestamp: NaiveDateTime,
@@ -87,7 +88,6 @@ impl Cache {
     ) -> Result<Vec<ProviderABaseEvent>, CacheError> {
         let (mut pipe, mut conn) = self.pipeline().await;
 
-        // Get from sorted Set events start after start_timestamp and events end before end_timestamp
         pipe.cmd("ZRANGEBYSCORE")
             .arg("start_date")
             .arg(start_timestamp.and_utc().timestamp())
@@ -161,7 +161,7 @@ impl Cache {
             .map_err(|_| CacheError::NotFound(key))
     }
 
-    /// set a key/value pair in redis
+    /// Set a key/value pair in redis
     pub async fn set(&self, key: String, value: String) -> CacheResult<()> {
         let mut conn = self.conn.clone();
         conn.set(key.clone(), value)
@@ -185,41 +185,6 @@ impl Cache {
         Ok(keys)
     }
 
-    /// Returns the specified range of elements in the sorted set stored at specific `key`.
-    ///
-    /// The order of elements is from the lowest to the highest score. Elements with the same score are ordered lexicographically.
-    ///
-    /// The `min` and `max` arguments represent zero-based indexes, where 0 is the first element, 1 is the next element, and so on.
-    ///
-    /// These arguments specify an inclusive range, so for example, ZRANGE myzset 0 1 will return both the first and the second element of the sorted set.
-    /// These arguments can also be negative numbers indicating offsets from the end of the sorted set, with -1 being the last element of the sorted set, -2 the penultimate element, and so on.
-    pub async fn zrange(&self, key: String, min: isize, max: isize) -> CacheResult<Vec<String>> {
-        let mut conn = self.conn.clone();
-        let results = conn.zrange(&key, min, max).await.map_err(|er| {
-            log::error!("{}", er);
-            CacheError::CannotZrange(key)
-        })?;
-        Ok(results)
-    }
-
-    /// Gets all items in a ordered set contained at the given key that are within the score range.
-    ///
-    /// For `min` and `max` values, passed in numbers are treated inclusively. It is possible to specify exclusive values by passing in a string prefixed with `(`, such as `"(3"`.
-    /// Additionally, negative or positive infinity may be specified as `"-inf"` and `"+inf"`.
-    pub async fn zrange_by_score(
-        &self,
-        key: String,
-        min: impl ToRedisArgs + Send + Sync,
-        max: impl ToRedisArgs + Send + Sync,
-    ) -> CacheResult<Vec<String>> {
-        let mut conn = self.conn.clone();
-        let results = conn.zrangebyscore(&key, min, max).await.map_err(|er| {
-            log::error!("{}", er);
-            CacheError::CannotZrangeByScore(key)
-        })?;
-        Ok(results)
-    }
-
     /// Get multiple values from redis. Returns a vec of resulting values.
     /// This does not error if a key does not have a corresponding value,
     /// the resulting value is simply omitted from the returned vec.
@@ -237,27 +202,6 @@ impl Cache {
             // If that fails, attempt to convert it to a string and wrap it in a vec.
             .or_else(|_| String::from_redis_value(&result).map(|single_value| vec![single_value]))
             .map_err(|e| CacheError::CannotMget(e.to_string()))
-    }
-
-    /// Iterates elements of Sorted Set types and their associated scores
-    ///
-    /// ZSCAN array of elements contain two elements, a member and its associated score, for every returned element of the sorted set.
-    /// [COUNT] option is the amount of work that should be done at every call in order to retrieve elements from the collection.
-    pub async fn zscan(
-        &self,
-        key: String,
-        cursor: u64,
-        count: u64,
-    ) -> CacheResult<(u64, Vec<(String, u64)>)> {
-        let mut conn = self.conn.clone();
-        redis::cmd("ZSCAN")
-            .arg(key)
-            .arg(cursor)
-            .arg("COUNT")
-            .arg(count)
-            .query_async::<MultiplexedConnection, (u64, Vec<(String, u64)>)>(&mut conn)
-            .await
-            .map_err(|e| CacheError::CannotZscan(e.to_string()))
     }
 }
 

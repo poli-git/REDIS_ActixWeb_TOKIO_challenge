@@ -1,5 +1,6 @@
 use async_worker::error::PersistPlansError;
 use async_worker::utils::{get_cache, get_db_connection};
+use async_worker::xml_models::EventOutput;
 use async_worker::xml_models::PlanList;
 use async_worker::xml_models::SellModeEnum;
 use reqwest::Client;
@@ -14,7 +15,6 @@ use storage::models::base_plans::NewBasePlan;
 use storage::models::plans::NewPlan;
 use storage::models::zones::NewZone;
 use storage::plan::add_or_update_plan;
-use storage::schema::base_plans::providers_id;
 use storage::zone::add_or_update_zone;
 use uuid::Uuid;
 
@@ -160,7 +160,7 @@ async fn persist_base_plans(
                 .unwrap_or_default(),
         };
 
-        // Persist the base_plan to the database
+        // Persist the base_plan to the database and cache
         match add_or_update_base_plan(&mut pg_pool, new_base_plan) {
             Ok(inserted) => {
                 log::debug!(
@@ -169,34 +169,14 @@ async fn persist_base_plans(
                     inserted.title
                 );
 
-                // Cache ONLY plan dates that are associated to a base_plan with sell mode = 'online'
-                if bp.sell_mode == Some(SellModeEnum::Online) {
-                    // Cache online plan
-                    if let Err(e) = redis_conn
-                        .set(
-                            format!(
-                                "base_plan:{}:{}",
-                                provider_id, bp.base_plan_id.clone().unwrap_or_default()
-                            ),
-                            serde_json::to_string(&plan).unwrap_or_default(),
-                        )
-                        .await
-                    {
-                        log::error!(
-                            "Failed to cache online base_plan {}:{}: {}",
-                            provider_id,
-                            event_base_id,                            
-                            e
-                        );
-                    }
-                }
-                // Persist plans associated with this base plan to the database
+                // Persist plans associated with this base plan and cache
                 match persist_plans(
                     &bp.plans,
                     bp.sell_mode.as_ref().cloned(),
                     inserted.base_plans_id,
                     &inserted.event_base_id,
                     inserted.providers_id,
+                    &inserted.title,
                     &mut pg_pool,
                     &redis_conn,
                 )
@@ -233,6 +213,7 @@ async fn persist_plans(
     base_plans_id: uuid::Uuid,
     event_base_id: &str,
     provider_id: uuid::Uuid,
+    title: &String,
     pg_pool: &mut PgPooledConnection,
     redis_conn: &Cache,
 ) -> Result<(), PersistPlansError> {
@@ -248,6 +229,9 @@ async fn persist_plans(
         bp_plans.len(),
         base_plans_id
     );
+    // Clone sell_mode so it can be used multiple times
+    let sell_mode_clone = sell_mode.clone();
+
     for plan in bp_plans {
         let new_plan = NewPlan {
             plans_id: uuid::Uuid::new_v4(),
@@ -284,7 +268,7 @@ async fn persist_plans(
                     inserted_plan.event_plan_id
                 );
                 // Cache ONLY plan dates that are associated to a base_plan with sell mode = 'online'
-                if sell_mode == Some(SellModeEnum::Online) {
+                if sell_mode_clone.as_ref() == Some(&SellModeEnum::Online) {
                     if let Err(e) = redis_conn
                         .cache_plan_dates(
                             event_base_id.to_string(),
@@ -301,20 +285,21 @@ async fn persist_plans(
                         );
                         return Err(PersistPlansError::RedisError(e.to_string()));
                     }
-                    log::debug!(
-                        "Caching full online event: {}:{}:{}",
-                        provider_id,
-                        event_base_id,
-                        inserted_plan.event_plan_id
-                    );
-                    // Cache online plan
+
+                    let new_event = EventOutput {
+                        base_plan_id: Some(event_base_id.to_string()),
+                        title: Some(title.clone()),
+                        sell_mode: Some(sell_mode_clone.clone().unwrap_or(SellModeEnum::Online)),
+                        plan: plan.clone(),
+                    };
+                    // Cache the online plan
                     if let Err(e) = redis_conn
                         .set(
                             format!(
                                 "plan:{}:{}:{}",
                                 provider_id, event_base_id, inserted_plan.event_plan_id
                             ),
-                            serde_json::to_string(&plan).unwrap_or_default(),
+                            serde_json::to_string(&new_event).unwrap_or_default(),
                         )
                         .await
                     {

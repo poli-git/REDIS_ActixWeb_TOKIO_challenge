@@ -58,6 +58,24 @@ pub struct Zone {
     pub numbered: Option<bool>,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct EventList {
+    #[serde(rename = "events")]
+    pub base_plan: Vec<EventOutput>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
+pub struct EventOutput {
+    #[serde(rename = "id")]
+    pub base_plan_id: Option<String>,
+    #[serde(rename = "title")]
+    pub title: Option<String>,
+    #[serde(rename = "sell_mode")]
+    pub sell_mode: Option<SellModeEnum>,
+    #[serde(rename = "plan")]
+    pub plan: Plan,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum SellModeEnum {
