@@ -265,26 +265,7 @@ impl Cache {
         conn.set(key.clone(), value)
             .await
             .map_err(|_| CacheError::CannotSet(key))
-    }
-
-    /// Get multiple values from redis. Returns a vec of resulting values.
-    /// This does not error if a key does not have a corresponding value,
-    /// the resulting value is simply omitted from the returned vec.
-    pub async fn mget(&self, keys: Vec<String>) -> CacheResult<Vec<String>> {
-        let mut conn = self.conn.clone();
-
-        // Get result from redis as a raw redis Value.
-        let result = conn
-            .get(keys.clone())
-            .await
-            .map_err(|e| CacheError::CannotMget(e.to_string()))?;
-
-        // Attempt to convert the result to a vec.
-        Vec::<String>::from_redis_value(&result)
-            // If that fails, attempt to convert it to a string and wrap it in a vec.
-            .or_else(|_| String::from_redis_value(&result).map(|single_value| vec![single_value]))
-            .map_err(|e| CacheError::CannotMget(e.to_string()))
-    }
+    }    
 }
 
 /// Queries the redis PING command to determine health
@@ -335,5 +316,56 @@ pub mod tests {
         let pattern = format!("{}.*", key);
         let keys: Vec<String> = cache.get_keys_matching_pattern(&pattern).await.unwrap();
         assert_eq!(keys.len(), 20);
+    }
+     #[tokio::test]
+    async fn it_caches_plan_dates() {
+        let cache = get_cache().await;
+        let event_base_id = "event_base_1".to_string();
+        let event_plan_id = "event_plan_1".to_string();
+        let start_date = NaiveDateTime::from_timestamp(1_700_000_000, 0);
+        let end_date = NaiveDateTime::from_timestamp(1_800_000_000, 0);
+
+        cache
+            .cache_plan_dates(
+                event_base_id.clone(),
+                event_plan_id.clone(),
+                start_date,
+                end_date,
+            )
+            .await
+            .unwrap();
+
+        let plans = cache
+            .get_matched_plans(start_date, end_date)
+            .await
+            .unwrap();
+
+        assert!(!plans.is_empty());
+    }
+
+    #[tokio::test]
+    async fn it_checks_health() {
+        let cache = get_cache().await;
+        let healthy = is_healthy(&cache).await;
+        assert!(healthy);
+    }
+
+    #[tokio::test]
+    async fn it_handles_empty_plan() {
+        let cache = get_cache().await;
+        let key = test_key();
+        let result = cache.get(key.clone()).await;
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err().to_string(), format!("Key not found: {}", key));
+    }
+
+    #[tokio::test]
+    async fn it_handles_invalid_plan_format() {
+        let cache = get_cache().await;
+        let key = test_key();
+        cache.set(key.clone(), "invalid_plan_format".to_string()).await.unwrap();
+        let result = cache.get(key).await;
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Deserialization error"));
     }
 }
