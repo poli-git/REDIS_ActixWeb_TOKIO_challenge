@@ -32,24 +32,6 @@ impl ErrorResponse {
     pub fn internal_error(message: &str) -> HttpResponse {
         HttpResponse::InternalServerError().json(ErrorResponse::new("internal_error", message))
     }
-    pub fn not_found(message: &str) -> HttpResponse {
-        HttpResponse::NotFound().json(ErrorResponse::new("not_found", message))
-    }
-    pub fn forbidden(message: &str) -> HttpResponse {
-        HttpResponse::Forbidden().json(ErrorResponse::new("forbidden", message))
-    }
-    pub fn unauthorized(message: &str) -> HttpResponse {
-        HttpResponse::Unauthorized().json(ErrorResponse::new("unauthorized", message))
-    }
-    pub fn conflict(message: &str) -> HttpResponse {
-        HttpResponse::Conflict().json(ErrorResponse::new("conflict", message))
-    }
-    pub fn method_not_allowed(message: &str) -> HttpResponse {
-        HttpResponse::MethodNotAllowed().json(ErrorResponse::new("method_not_allowed", message))
-    }
-    pub fn not_acceptable(message: &str) -> HttpResponse {
-        HttpResponse::NotAcceptable().json(ErrorResponse::new("not_acceptable", message))
-    }
     pub fn service_unavailable(message: &str) -> HttpResponse {
         HttpResponse::ServiceUnavailable().json(ErrorResponse::new("service_unavailable", message))
     }
