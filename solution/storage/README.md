@@ -4,7 +4,6 @@ Abstraction over a Postgresql server using Diesel.
 
 -   [Rust](#rust)
 -   [Setup](#setup)
--   [Docker](#Docker)
 -   [Tests](#tests)
 -   [API](#api)
     -   [Games](#games)
@@ -17,7 +16,7 @@ To install Rust, visit [Rust's installation page](https://www.rust-lang.org/tool
 
 ## Setup
 
-`The following assumes that the Platform cluster is running`
+`The following assumes that the solution docker cluster is running`
 
 First, install the diesel cli:
 
@@ -45,35 +44,6 @@ To apply the new migration:
 
 ```shell
 diesel migration run
-```
-
-## Data Migrations
-
-Migrations that modify many existing records should be performed from the `data_migration` crate. Locally you can run them from that crate by specifying what version you're migrating from with the `data_migration_source_version` env var and running:
-
-```shell
-cargo run --bin data_migration
-```
-
-The cargo feature flag `data_migration` is used by this crate to guard methods that should only be used when running large data migrations.
-
-## CockroachDB GUI
-
-With the database running in the cluster, go to `http://0.0.0.0:8000` to view
-the CockroachDB GUI.
-
-## Docker
-
-To run bash in the cockroachdb container:
-
-```shell
-docker exec -i -t cockroachdb bash
-```
-
-To enter the cockroach SQL interface when in the container:
-
-```shell
-./cockroach.sh sql --insecure
 ```
 
 ## Tests
