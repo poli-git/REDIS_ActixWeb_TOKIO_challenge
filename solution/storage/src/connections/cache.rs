@@ -265,7 +265,7 @@ impl Cache {
         conn.set(key.clone(), value)
             .await
             .map_err(|_| CacheError::CannotSet(key))
-    }    
+    }
 }
 
 /// Queries the redis PING command to determine health
@@ -317,7 +317,7 @@ pub mod tests {
         let keys: Vec<String> = cache.get_keys_matching_pattern(&pattern).await.unwrap();
         assert_eq!(keys.len(), 20);
     }
-     #[tokio::test]
+    #[tokio::test]
     async fn it_caches_plan_dates() {
         let cache = get_cache().await;
         let event_base_id = "event_base_1".to_string();
@@ -335,10 +335,7 @@ pub mod tests {
             .await
             .unwrap();
 
-        let plans = cache
-            .get_matched_plans(start_date, end_date)
-            .await
-            .unwrap();
+        let plans = cache.get_matched_plans(start_date, end_date).await.unwrap();
 
         assert!(!plans.is_empty());
     }
@@ -356,16 +353,25 @@ pub mod tests {
         let key = test_key();
         let result = cache.get(key.clone()).await;
         assert!(result.is_err());
-        assert_eq!(result.unwrap_err().to_string(), format!("Key not found: {}", key));
+        assert_eq!(
+            result.unwrap_err().to_string(),
+            format!("Key not found: {}", key)
+        );
     }
 
     #[tokio::test]
     async fn it_handles_invalid_plan_format() {
         let cache = get_cache().await;
         let key = test_key();
-        cache.set(key.clone(), "invalid_plan_format".to_string()).await.unwrap();
+        cache
+            .set(key.clone(), "invalid_plan_format".to_string())
+            .await
+            .unwrap();
         let result = cache.get(key).await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("Deserialization error"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Deserialization error"));
     }
 }
