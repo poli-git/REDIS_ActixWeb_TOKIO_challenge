@@ -206,14 +206,14 @@ async fn persist_base_plans(
     }
     Ok(())
 }
-
+#[allow(clippy::too_many_arguments)]
 async fn persist_plans(
     bp_plans: &Vec<async_worker::xml_models::Plan>,
     sell_mode: Option<SellModeEnum>,
     base_plans_id: uuid::Uuid,
     event_base_id: &str,
     provider_id: uuid::Uuid,
-    title: &String,
+    title: &str,
     pg_pool: &mut PgPooledConnection,
     redis_conn: &Cache,
 ) -> Result<(), PersistPlansError> {
@@ -288,7 +288,7 @@ async fn persist_plans(
 
                     let new_event = EventOutput {
                         base_plan_id: Some(event_base_id.to_string()),
-                        title: Some(title.clone()),
+                        title: Some(title.to_owned()),
                         sell_mode: Some(sell_mode_clone.clone().unwrap_or(SellModeEnum::Online)),
                         plan: plan.clone(),
                     };
