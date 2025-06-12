@@ -1,4 +1,3 @@
-use log::info;
 use serde::Serialize;
 use storage::connections::cache::ProviderABaseEvent;
 

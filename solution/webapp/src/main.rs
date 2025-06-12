@@ -4,8 +4,6 @@ use dotenv::dotenv;
 use storage::connections::cache::Cache;
 use storage::error::StorageError;
 use tokio::sync::Mutex;
-use webapp::service::get_health;
-use webapp::service::search_available_events;
 
 mod config;
 mod errors;
@@ -36,8 +34,7 @@ async fn main() -> Result<()> {
     HttpServer::new(move || {
         App::new()
             .app_data(app_data.clone())
-            .service(web::resource("/health").route(web::get().to(get_health)))
-            .service(web::resource("/search").route(web::get().to(search_available_events)))
+            .configure(service::configure)
     })
     .client_disconnect_timeout(std::time::Duration::from_millis(
         config.actix_client_shutdown_ms as u64,

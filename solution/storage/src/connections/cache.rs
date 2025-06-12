@@ -1,10 +1,8 @@
 use crate::error::{CacheError, CacheResult};
 use chrono::NaiveDateTime;
 use dotenv::dotenv;
-use futures::{stream, StreamExt};
-use log::{error, info};
+use log::error;
 use redis::Client;
-use redis::FromRedisValue;
 use redis::Pipeline;
 use redis::{aio::MultiplexedConnection, AsyncCommands};
 use serde::{Deserialize, Serialize};

@@ -8,6 +8,12 @@ use storage::connections::cache::is_healthy;
 use storage::connections::cache::Cache;
 use tokio::sync::Mutex;
 
+// Add this function to configure routes
+pub fn configure(cfg: &mut web::ServiceConfig) {
+    cfg.service(web::resource("/search").route(web::get().to(search_available_events)));
+    cfg.service(web::resource("/health").route(web::get().to(get_health)));
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct HealthResponse {
     status: String,
