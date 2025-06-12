@@ -36,7 +36,7 @@ pub async fn get_health(_req: HttpRequest) -> Result<Json<HealthResponse>> {
 }
 
 /// Search for available events based on the provided time range.
-/// GET requests with query parameters for `starts_at` and `ends_at`
+/// request with query parameters for `starts_at` and `ends_at`
 pub async fn search_available_events(
     state: web::Data<Mutex<Cache>>,
     req: Query<GetSearchRequest>,
