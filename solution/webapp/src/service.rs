@@ -8,7 +8,10 @@ use storage::connections::cache::is_healthy;
 use storage::connections::cache::Cache;
 use tokio::sync::Mutex;
 
-// Add this function to configure routes
+/// Configures the web service routes.
+/// It registers the `/search` route for searching available events and the `/health` route for health checks.
+/// The `/search` route accepts GET requests with query parameters for `starts_at` and `ends_at`.
+/// The `/health` route provides a basic health check response.
 pub fn configure(cfg: &mut web::ServiceConfig) {
     cfg.service(web::resource("/search").route(web::get().to(search_available_events)));
     cfg.service(web::resource("/health").route(web::get().to(get_health)));
@@ -33,6 +36,7 @@ pub async fn get_health(_req: HttpRequest) -> Result<Json<HealthResponse>> {
 }
 
 /// Search for available events based on the provided time range.
+/// GET requests with query parameters for `starts_at` and `ends_at`
 pub async fn search_available_events(
     state: web::Data<Mutex<Cache>>,
     req: Query<GetSearchRequest>,
