@@ -38,6 +38,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_establish_connection() {
+        init_env();
         let pool = establish_connection().await;
         let conn = pool.get();
         assert!(
