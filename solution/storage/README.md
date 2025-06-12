@@ -1,6 +1,6 @@
 # Solution Persistent Layer
 
-Abstraction over a Postgresql server using Diesel.
+Abstraction over a Postgresql server using Diesel and REDIS.
 
 -   [Rust](#rust)
 -   [Setup](#setup)
