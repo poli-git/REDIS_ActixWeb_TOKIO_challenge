@@ -1,10 +1,9 @@
-# Platform Persistent Layer
+# Solution Persistent Layer
 
-Abstraction over a CockroachDB server using Diesel.
+Abstraction over a Postgresql server using Diesel.
 
 -   [Rust](#rust)
 -   [Setup](#setup)
--   [CockroachDB GUI](#cockroachdb-gui)
 -   [Docker](#Docker)
 -   [Tests](#tests)
 -   [API](#api)

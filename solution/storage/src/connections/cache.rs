@@ -277,6 +277,8 @@ pub async fn is_healthy(cache: &Cache) -> bool {
 
 #[cfg(test)]
 pub mod tests {
+    use chrono::DateTime;
+
     use super::*;
 
     pub fn test_key() -> String {
@@ -320,20 +322,20 @@ pub mod tests {
         let cache = get_cache().await;
         let event_base_id = "event_base_1".to_string();
         let event_plan_id = "event_plan_1".to_string();
-        let start_date = NaiveDateTime::from_timestamp(1_700_000_000, 0);
-        let end_date = NaiveDateTime::from_timestamp(1_800_000_000, 0);
+        let start_date = DateTime::from_timestamp(1_700_000_000, 0).expect("Invalid start timestamp");
+        let end_date = DateTime::from_timestamp(1_800_000_000, 0).expect("Invalid end timestamp");
 
         cache
             .cache_plan_dates(
                 event_base_id.clone(),
                 event_plan_id.clone(),
-                start_date,
-                end_date,
+                start_date.naive_utc(),
+                end_date.naive_utc(),
             )
             .await
             .unwrap();
 
-        let plans = cache.get_matched_plans(start_date, end_date).await.unwrap();
+        let plans = cache.get_matched_plans(start_date.naive_utc(), end_date.naive_utc()).await.unwrap();
 
         assert!(!plans.is_empty());
     }
