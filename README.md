@@ -1,12 +1,4 @@
-# Fever code challenge
-
-Welcome! We're thrilled to have you at this stage of the process. This challenge is designed to give us insight into your coding approach and problem-solving skills. It’s a simplified example of real-world scenarios we handle daily at Fever.
-
-## About Fever
-
-At Fever we work to bring experiences to people. We have a marketplace of plans from different providers that are curated and then consumed by multiple applications. We work hard to expand the range of experiences we offer to our customers. Consequently, we are continuously looking for new providers with great plans to integrate in our platforms. 
-
-## The challenge
+# The challenge
 
 Your task is to develop a microservice that integrates plans from an external provider into the Fever marketplace.
 
