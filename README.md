@@ -55,15 +55,3 @@ To make your solution even stronger, consider:
 - **Optimization Strategies:** How can the system remain performant under heavy load?
 
 You can implement these enhancements in your code or describe your approach in the README.
-
-## Need Help?
-
-If you have any questions, feel free to reach out. We’ll get back to you as soon as possible.
-
-## Feedback
-
-We value your time and effort! Please take a moment to share your thoughts on our process:
-
-[📋 Feedback Form](https://forms.gle/6NdDApby6p3hHsWp8)
-
-Thank you for participating, and good luck! 🎉
