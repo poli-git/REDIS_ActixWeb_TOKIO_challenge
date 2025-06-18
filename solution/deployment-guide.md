@@ -69,6 +69,8 @@
 
  6. Invoke `search` endpoint from WebApp platform:
    
+    **API SPEC**: http://localhost:8088/swagger-ui
+
     Open a new command line window execute
 
     ```shell
