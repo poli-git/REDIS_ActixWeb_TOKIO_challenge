@@ -35,7 +35,9 @@ cargo run
 ## API Specification
 **API SPEC**: http://localhost:8088/swagger-ui/
 
-## Invoke SEARCH EndPoint
+
+
+## SEARCH EndPoint
 Invoke `search` endpoint from WebApp platform:
    
     Open a new command line window execute
