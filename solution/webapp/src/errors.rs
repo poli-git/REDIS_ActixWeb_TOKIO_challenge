@@ -1,17 +1,18 @@
 use actix_web::{HttpResponse, ResponseError};
 use serde::Serialize;
 use std::fmt;
+use utoipa::ToSchema;
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct ErrorBody {
     pub code: String,
     pub message: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct ErrorResponse {
     pub error: ErrorBody,
-    pub data: Option<serde_json::Value>, // Always null for errors
+    pub data: Option<()>, // Always null for errors
 }
 
 impl ErrorResponse {
@@ -21,7 +22,7 @@ impl ErrorResponse {
                 code: code.to_string(),
                 message: message.to_string(),
             },
-            data: None,
+            data: None, // Always null for errors
         }
     }
 

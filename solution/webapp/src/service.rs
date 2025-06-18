@@ -1,4 +1,6 @@
 use crate::errors::*;
+use crate::helpers::ApiResponse;
+use crate::helpers::EventsData;
 use crate::helpers::*;
 use actix_web::{web, HttpRequest, HttpResponse, Responder};
 use actix_web::{web::Json, web::Query, Result};
@@ -7,8 +9,8 @@ use serde::{Deserialize, Serialize};
 use storage::connections::cache::is_healthy;
 use storage::connections::cache::Cache;
 use tokio::sync::Mutex;
-use utoipa::ToSchema;
 use utoipa::OpenApi;
+use utoipa::ToSchema;
 
 #[derive(OpenApi)]
 #[openapi(
@@ -20,7 +22,7 @@ use utoipa::OpenApi;
         schemas(HealthResponse, GetSearchRequest)
     ),
     tags(
-        (name = "Webapp", description = "API endpoints")
+        (name = "webapp", description = "API endpoints")
     )
 )]
 pub struct ApiDoc;
@@ -68,8 +70,8 @@ pub async fn get_health(_req: HttpRequest) -> Result<Json<HealthResponse>> {
         ("ends_at" = String, Query, description = "End datetime in %Y-%m-%dT%H:%M:%S format")
     ),
     responses(
-        (status = 200, description = "List of available events"),
-        (status = 400, description = "Bad request"),
+        (status = 200, description = "List of available plans", body = ApiResponse<EventsData>),
+        (status = 400, description = "Bad request",  body = ErrorResponse), 
         (status = 503, description = "Service unavailable"),
         (status = 500, description = "Internal error")
     ),

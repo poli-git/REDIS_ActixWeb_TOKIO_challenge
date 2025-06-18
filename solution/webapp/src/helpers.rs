@@ -1,18 +1,19 @@
 use serde::Serialize;
 use storage::connections::cache::ProviderABaseEvent;
+use utoipa::ToSchema;
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct ApiResponse<T> {
     pub data: T,
     pub error: Option<String>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct EventsData {
     pub events: Vec<EventDTO>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct EventDTO {
     pub id: String,
     pub title: String,
