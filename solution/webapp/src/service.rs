@@ -7,10 +7,7 @@ use serde::{Deserialize, Serialize};
 use storage::connections::cache::is_healthy;
 use storage::connections::cache::Cache;
 use tokio::sync::Mutex;
-
 use utoipa::ToSchema;
-// use utoipa_actix_web::AppExt;
-
 use utoipa::OpenApi;
 
 #[derive(OpenApi)]
@@ -23,7 +20,7 @@ use utoipa::OpenApi;
         schemas(HealthResponse, GetSearchRequest)
     ),
     tags(
-        (name = "api", description = "API endpoints")
+        (name = "Webapp", description = "API endpoints")
     )
 )]
 pub struct ApiDoc;
