@@ -72,8 +72,8 @@ pub async fn get_health(_req: HttpRequest) -> Result<Json<HealthResponse>> {
     responses(
         (status = 200, description = "List of available plans", body = ApiResponse<EventsData>),
         (status = 400, description = "Bad request",  body = ErrorResponse), 
-        (status = 503, description = "Service unavailable"),
-        (status = 500, description = "Internal error")
+        (status = 503, description = "Service unavailable", body = ErrorResponse),
+        (status = 500, description = "Internal error", body = ErrorResponse)
     ),
     tag = "api"
 )]
