@@ -31,3 +31,7 @@ cargo build
 ```shell
 cargo run
 ```
+
+## API Specification
+
+**API SPEC**: http://localhost:8088/swagger-ui/
