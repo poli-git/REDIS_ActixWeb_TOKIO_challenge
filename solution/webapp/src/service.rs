@@ -8,6 +8,26 @@ use storage::connections::cache::is_healthy;
 use storage::connections::cache::Cache;
 use tokio::sync::Mutex;
 
+use utoipa::ToSchema;
+// use utoipa_actix_web::AppExt;
+
+use utoipa::OpenApi;
+
+#[derive(OpenApi)]
+#[openapi(
+    paths(
+        get_health,
+        search_available_events
+    ),
+    components(
+        schemas(HealthResponse, GetSearchRequest)
+    ),
+    tags(
+        (name = "api", description = "API endpoints")
+    )
+)]
+pub struct ApiDoc;
+
 /// Configures the web service routes.
 /// It registers the `/search` route for searching available events and the `/health` route for health checks.
 /// The `/search` route accepts GET requests with query parameters for `starts_at` and `ends_at`.
@@ -17,24 +37,47 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
     cfg.service(web::resource("/health").route(web::get().to(get_health)));
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, ToSchema)]
 pub struct HealthResponse {
     status: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct GetSearchRequest {
     starts_at: String,
     ends_at: String,
 }
 
-/// Basic healthcheck for services
+#[utoipa::path(
+    get,
+    path = "/health",
+    responses(
+        (status = 200, description = "Healthcheck", body = HealthResponse)
+    ),
+    tag = "api"
+)]
+/// Get the health status of the service.
 pub async fn get_health(_req: HttpRequest) -> Result<Json<HealthResponse>> {
     Ok(Json(HealthResponse {
         status: "Basic healthcheck for Web-service: - OK".to_owned(),
     }))
 }
 
+#[utoipa::path(
+    get,
+    path = "/search",
+    params(
+        ("starts_at" = String, Query, description = "Start datetime in %Y-%m-%dT%H:%M:%S format"),
+        ("ends_at" = String, Query, description = "End datetime in %Y-%m-%dT%H:%M:%S format")
+    ),
+    responses(
+        (status = 200, description = "List of available events"),
+        (status = 400, description = "Bad request"),
+        (status = 503, description = "Service unavailable"),
+        (status = 500, description = "Internal error")
+    ),
+    tag = "api"
+)]
 /// Search for available events based on the provided time range.
 /// request with query parameters for `starts_at` and `ends_at`
 pub async fn search_available_events(
@@ -61,6 +104,7 @@ pub async fn search_available_events(
             return ErrorResponse::bad_request("Invalid ends_at format. Use %Y-%m-%dT%H:%M:%S");
         }
     };
+
     if starts_at >= ends_at {
         return ErrorResponse::bad_request("starts_at must be before ends_at.");
     }

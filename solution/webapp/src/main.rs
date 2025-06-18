@@ -5,10 +5,14 @@ use storage::connections::cache::Cache;
 use storage::error::StorageError;
 use tokio::sync::Mutex;
 
+use utoipa::OpenApi;
+use utoipa_swagger_ui::SwaggerUi;
+//
 mod config;
 mod errors;
 mod helpers;
 mod service;
+use service::ApiDoc;
 
 async fn get_cache() -> Cache {
     Cache::new()
@@ -33,9 +37,15 @@ async fn main() -> Result<()> {
 
     HttpServer::new(move || {
         App::new()
+            .service(SwaggerUi::new("/swagger-ui/{_:.*}").url("/openapi.json", ApiDoc::openapi()))
             .app_data(app_data.clone())
             .configure(service::configure)
+            .app_data(web::Data::new(ApiDoc::openapi()))
+            .app_data(web::Data::new(ApiDoc::openapi().info.clone()))
+            .app_data(web::Data::new(ApiDoc::openapi().paths.clone()))
     })
+    .disable_signals()
+    .bind(config.web_app_server)?
     .client_disconnect_timeout(std::time::Duration::from_millis(
         config.actix_client_shutdown_ms as u64,
     ))
@@ -47,7 +57,6 @@ async fn main() -> Result<()> {
         config.actix_keepalive_seconds as u64,
     ))
     .workers(config.actix_num_workers)
-    .bind(config.web_app_server)?
     .run()
     .await?;
 

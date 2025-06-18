@@ -5,6 +5,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+actix-multipart = "0.7"
 actix-web = "4.11.0"
 anyhow = "1.0.98"
 chrono = "0.4"
@@ -18,3 +19,7 @@ serde_derive = "*"
 serde_json = "*"
 storage = { path = "../storage" }
 tokio = { version = "1.45.1", features = ["full"] }
+utoipa = "5.4"
+utoipa-swagger-ui = { version = "9.0.2", features = ["actix-web"] }
+
+
