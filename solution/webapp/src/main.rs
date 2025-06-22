@@ -10,7 +10,7 @@ use utoipa_swagger_ui::SwaggerUi;
 //
 mod config;
 mod errors;
-mod helpers;
+mod handler;
 mod service;
 use service::ApiDoc;
 
