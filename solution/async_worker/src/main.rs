@@ -1,11 +1,10 @@
 // use storage::db::get_db_connection;
-use std::time::Duration;
 use common::utils::get_db_connection;
+use std::time::Duration;
 use storage::provider::get_active_providers;
 
 mod config;
 mod handler;
-
 
 use handler::process_provider_events;
 

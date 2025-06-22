@@ -7,7 +7,6 @@ use uuid::Uuid;
 use common::persist::persist_base_plans;
 use common::xml_models::PlanList;
 
-
 pub async fn process_provider_events(provider_id: Uuid, provider_name: String, url: String) {
     info!(
         "Fetching events for provider: {} - {}",
