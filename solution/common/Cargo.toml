@@ -1,0 +1,16 @@
+[package]
+authors = ["Pablo Bisceglia <pbisceglia@gmail.com>"]
+name = "common"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+chrono = { version = "0.4", features = ["serde"] }
+env_logger = "0.11.8"
+envy = "0.4"
+log = "0.4"
+serde = { version = "*", features = ["derive"] }
+serde_json = "*"
+storage = { version = "0.1.0", path = "../storage" }
+thiserror = "2.0.12"
+uuid = { version = "0.8", features = ["v4","v5"] }

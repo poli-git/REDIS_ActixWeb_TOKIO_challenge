@@ -549,6 +549,7 @@ name = "async_worker"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "common",
  "diesel",
  "dotenv",
  "env_logger",
@@ -794,6 +795,21 @@ dependencies = [
  "memchr",
  "pin-project-lite 0.2.16",
  "tokio 0.2.25",
+]
+
+[[package]]
+name = "common"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "env_logger",
+ "envy",
+ "log",
+ "serde",
+ "serde_json",
+ "storage",
+ "thiserror 2.0.12",
+ "uuid",
 ]
 
 [[package]]
