@@ -21,6 +21,7 @@ pub async fn persist_base_plans(
     base_plans: Vec<xml_models::BasePlan>,
     provider_id: uuid::Uuid,
     provider_name: String,
+    redis_expiration_key_time_limit: u32,
 ) -> Result<(), PersistPlansError> {
     if base_plans.is_empty() {
         log::warn!(
@@ -74,6 +75,7 @@ pub async fn persist_base_plans(
                     &inserted.title,
                     &mut pg_pool,
                     &redis_conn,
+                    redis_expiration_key_time_limit,
                 )
                 .await
                 {
@@ -112,6 +114,7 @@ async fn persist_plans(
     title: &str,
     pg_pool: &mut PgPooledConnection,
     redis_conn: &Cache,
+    redis_expiration_key_time_limit: u32,
 ) -> Result<(), PersistPlansError> {
     if bp_plans.is_empty() {
         log::warn!("No plans found for base_plan ID: {}", base_plans_id);
@@ -190,12 +193,16 @@ async fn persist_plans(
                     };
                     // Cache the online plan
                     if let Err(e) = redis_conn
-                        .set(
+                        .set_ex(
                             format!(
                                 "plan:{}:{}:{}",
                                 provider_id, event_base_id, inserted_plan.event_plan_id
-                            ),
+                            )
+                            .as_str(),
                             serde_json::to_string(&new_event).unwrap_or_default(),
+                            redis_expiration_key_time_limit
+                                .try_into()
+                                .unwrap_or(60 * 60 * 24),
                         )
                         .await
                     {

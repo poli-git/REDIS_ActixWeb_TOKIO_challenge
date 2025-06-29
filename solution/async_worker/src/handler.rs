@@ -4,10 +4,16 @@ use reqwest::Client;
 use storage::models::base_plans::NewBasePlan;
 use uuid::Uuid;
 
+use crate::config;
 use common::persist::persist_base_plans;
 use common::xml_models::PlanList;
 
 pub async fn process_provider_events(provider_id: Uuid, provider_name: String, url: String) {
+    dotenv::dotenv().ok();
+    env_logger::init();
+    let config = config::build();
+    let redis_expiration_key_time_limit = config.redis_expiration_key_time_limit_sec;
+
     info!(
         "Fetching events for provider: {} - {}",
         provider_id, provider_name
@@ -95,6 +101,7 @@ pub async fn process_provider_events(provider_id: Uuid, provider_name: String, u
         plan_list.output.base_plan,
         provider_id,
         provider_name.clone(),
+        redis_expiration_key_time_limit,
     )
     .await
     {
