@@ -4,6 +4,7 @@ use dotenv::dotenv;
 use log::error;
 use redis::Client;
 use redis::Pipeline;
+use redis::ToRedisArgs;
 use redis::{aio::MultiplexedConnection, AsyncCommands};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
@@ -264,6 +265,19 @@ impl Cache {
             .await
             .map_err(|_| CacheError::CannotSet(key))
     }
+
+    /// Set a key to a provided value with expiration of a key
+    pub async fn set_ex(
+        &self,
+        key: &str,
+        value: impl ToRedisArgs + Send + Sync,
+        seconds: usize,
+    ) -> CacheResult<()> {
+        let mut conn = self.conn.clone();
+        conn.set_ex(key, value, seconds)
+            .await
+            .map_err(|_| CacheError::CannotSetEx(key.into()))
+    }
 }
 
 /// Queries the redis PING command to determine health
@@ -390,6 +404,19 @@ pub mod tests {
         let cache = get_cache().await;
         let healthy = is_healthy(&cache).await;
         assert!(healthy);
+    }
+    #[tokio::test]
+    async fn it_sets_ex() {
+        let cache = get_cache().await;
+        let key = test_key();
+        let value = "131178";
+        let seconds = 600;
+        cache
+            .set_ex(&key.clone(), value.clone(), seconds)
+            .await
+            .unwrap();
+        let get_value = cache.get(key).await.unwrap();
+        assert_eq!(value, get_value);
     }
 
     #[tokio::test]
