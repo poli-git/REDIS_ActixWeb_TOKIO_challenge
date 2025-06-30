@@ -10,7 +10,6 @@ use common::xml_models::PlanList;
 
 pub async fn process_provider_events(provider_id: Uuid, provider_name: String, url: String) {
     dotenv::dotenv().ok();
-    env_logger::init();
     let config = config::build();
     let redis_expiration_key_time_limit = config.redis_expiration_key_time_limit_sec;
 
