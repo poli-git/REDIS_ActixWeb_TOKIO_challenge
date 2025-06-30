@@ -140,14 +140,17 @@ impl Cache {
         if start_event_ids.is_empty() || end_event_ids.is_empty() {
             return Ok(Vec::new());
         }
+
         // Create a HashSet for start_event_ids for efficient lookup
         let start_event_ids: HashSet<_> = start_event_ids
             .into_iter()
             .map(|id| id.to_string())
             .collect();
+
         // Create a HashSet for end_event_ids for efficient lookup
         let end_event_ids: HashSet<_> =
             end_event_ids.into_iter().map(|id| id.to_string()).collect();
+
         // Find the intersection of start and end event IDs
         // This will give us the event IDs that are present in both sets
         if start_event_ids.is_empty() || end_event_ids.is_empty() {
