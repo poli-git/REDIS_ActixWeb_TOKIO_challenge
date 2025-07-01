@@ -113,12 +113,9 @@ pub async fn search_available_events(
     if !is_healthy(&cache).await {
         return ErrorResponse::service_unavailable("Cache is not healthy.");
     }
-    // Fetch matched plans from the cache
-    match cache.get_matched_plans(starts_at, ends_at).await {
-        Ok(events) => {
-            let response = map_provider_events_to_response_dto(&events);
-            HttpResponse::Ok().json(response)
-        }
+    // Fetch matched plans based on the provided time range
+    match get_plans(&cache, starts_at, ends_at).await {
+        Ok(response) => HttpResponse::Ok().json(response),
         Err(_) => ErrorResponse::internal_error("Failed to fetch events"),
     }
 }

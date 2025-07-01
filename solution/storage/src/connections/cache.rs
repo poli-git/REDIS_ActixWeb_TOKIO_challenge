@@ -113,12 +113,12 @@ impl Cache {
             .map_err(|e| CacheError::Error(format!("Failed to cache plan dates: {}", e)))
     }
 
-    /// Get from sorted Set plans that start after start_timestamp and plans that end before end_timestamp.
-    pub async fn get_matched_plans(
+    /// Get from sorted Set Plans that start after start_timestamp and plans that end before end_timestamp.
+    pub async fn get_plans(
         &self,
         start_timestamp: NaiveDateTime,
         end_timestamp: NaiveDateTime,
-    ) -> Result<Vec<ProviderABaseEvent>, CacheError> {
+    ) -> Result<HashSet<String>, CacheError> {
         let (mut pipe, mut conn) = self.pipeline().await;
 
         pipe.cmd("ZRANGEBYSCORE")
@@ -138,7 +138,7 @@ impl Cache {
 
         // Computational Intersection of start and end event IDs
         if start_event_ids.is_empty() || end_event_ids.is_empty() {
-            return Ok(Vec::new());
+            return Ok(HashSet::new());
         }
 
         // Create a HashSet for start_event_ids for efficient lookup
@@ -154,7 +154,7 @@ impl Cache {
         // Find the intersection of start and end event IDs
         // This will give us the event IDs that are present in both sets
         if start_event_ids.is_empty() || end_event_ids.is_empty() {
-            return Ok(Vec::new());
+            return Ok(HashSet::new());
         }
         let matched_event_ids: HashSet<_> = start_event_ids.into_iter().collect();
         let matched_event_ids: HashSet<_> = matched_event_ids
@@ -162,74 +162,7 @@ impl Cache {
             .cloned()
             .collect();
 
-        let mut base_events = HashMap::new();
-
-        for event_id in matched_event_ids {
-            let parts: Vec<&str> = event_id.split(':').collect();
-            if parts.len() != 2 {
-                error!("Invalid event ID format: {}", event_id);
-                continue;
-            }
-            let base_id = parts[0].to_string();
-            let plan_id = parts[1].to_string();
-            let base_id_clone = base_id.clone();
-
-            let key = format!("{}:{}:{}:{}", ROOT_KEY, "*", base_id, plan_id);
-
-            let scan_result = self.get_keys_matching_pattern(&key).await.map_err(|e| {
-                error!("Error scanning for plans in Redis: {}", e);
-                CacheError::Error(format!("Redis scan error: {}", e))
-            })?;
-            if scan_result.is_empty() {
-                error!("No plans found for base ID: {}", base_id);
-                continue;
-            }
-
-            // Get plans stored in Redis for the given base_id and plan_id
-            // Iterate over the results and deserialize each plan
-            for result in scan_result {
-                if result.trim().is_empty() {
-                    error!("Plan string from Redis is empty for key: {}", key);
-                    continue;
-                }
-                let result_clone = result.clone();
-                let plan = self.get(result).await.map_err(|e| {
-                    error!("Error getting plan from Redis: {}", e);
-                    CacheError::Error(format!("Redis get error: {}", e))
-                })?;
-                if plan.trim().is_empty() {
-                    error!("Plan string is empty for key: {}", result_clone);
-                    continue;
-                }
-
-                // Remove "@" from all field names before deserialization
-                let plan_json = plan
-                    .replace("\"@plan_start_date\"", "\"plan_start_date\"")
-                    .replace("\"@plan_end_date\"", "\"plan_end_date\"")
-                    .replace("\"@plan_id\"", "\"plan_id\"")
-                    .replace("\"@sell_from\"", "\"sell_from\"")
-                    .replace("\"@sell_to\"", "\"sell_to\"")
-                    .replace("\"@sold_out\"", "\"sold_out\"")
-                    .replace("\"@zone_id\"", "\"zone_id\"")
-                    .replace("\"@capacity\"", "\"capacity\"")
-                    .replace("\"@price\"", "\"price\"")
-                    .replace("\"@name\"", "\"name\"")
-                    .replace("\"@numbered\"", "\"numbered\"");
-
-                let plan: ProviderABaseEvent = serde_json::from_str(&plan_json).map_err(|e| {
-                    error!("Error deserializing plan: {} | raw value: {}", e, plan_json);
-                    CacheError::Error(format!("Deserialization error: {}", e))
-                })?;
-
-                // Insert the plan into the base_events map
-                base_events
-                    .entry(base_id_clone.clone())
-                    .or_insert_with(Vec::new)
-                    .push(plan);
-            }
-        }
-
-        Ok(base_events.into_values().flatten().collect())
+        Ok(matched_event_ids)
     }
 
     /// Scan for all keys matching the given pattern and return them as Vec<String>
