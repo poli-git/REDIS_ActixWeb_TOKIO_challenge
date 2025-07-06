@@ -7,7 +7,7 @@ use redis::Pipeline;
 use redis::ToRedisArgs;
 use redis::{aio::MultiplexedConnection, AsyncCommands};
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::env;
 
 pub struct Cache {
@@ -58,8 +58,6 @@ pub struct FilterQuery {
     pub starts_at: NaiveDateTime,
     pub ends_at: NaiveDateTime,
 }
-
-const ROOT_KEY: &str = "plan";
 
 /// Async Cache implementation for redis
 impl Cache {
@@ -113,8 +111,8 @@ impl Cache {
             .map_err(|e| CacheError::Error(format!("Failed to cache plan dates: {}", e)))
     }
 
-    /// Get from sorted Set Plans that start after start_timestamp and plans that end before end_timestamp.
-    pub async fn get_plans(
+    /// Get from sorted Set Event Ids that start after start_timestamp and plans that end before end_timestamp.
+    pub async fn get_event_ids(
         &self,
         start_timestamp: NaiveDateTime,
         end_timestamp: NaiveDateTime,

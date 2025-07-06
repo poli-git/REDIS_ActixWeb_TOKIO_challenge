@@ -5,7 +5,15 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 #[derive(
-    Debug, Serialize, Deserialize, Associations, Identifiable, Queryable, PartialEq, Clone,
+    Debug,
+    Serialize,
+    Deserialize,
+    Associations,
+    Identifiable,
+    Queryable,
+    PartialEq,
+    Clone,
+    Selectable,
 )]
 #[diesel(belongs_to(BasePlan, foreign_key = base_plans_id))]
 #[diesel(table_name = plans)]

@@ -4,6 +4,8 @@ use std::collections::HashMap;
 use storage::connections::cache::{Cache, ProviderABaseEvent};
 use utoipa::ToSchema;
 
+const ROOT_KEY: &str = "plan";
+
 #[derive(Serialize, ToSchema)]
 pub struct ApiResponse<T> {
     pub data: T,
@@ -33,7 +35,7 @@ pub async fn get_plans(
     ends_at: NaiveDateTime,
 ) -> Result<ApiResponse<EventsData>, String> {
     // Fetch matched plans from the cache
-    let matched_event_ids = match cache.get_plans(starts_at, ends_at).await {
+    let matched_event_ids = match cache.get_event_ids(starts_at, ends_at).await {
         Ok(matched_event_ids) => matched_event_ids,
         Err(e) => return Err(format!("Failed to fetch plans: {}", e)),
     };
@@ -58,41 +60,18 @@ pub async fn get_plans(
             }
         };
         if scan_result.is_empty() {
-          // Get plans stored in DB 
+            // Get plans stored in DB
 
-          // Cache stored Plans
+            // Cache stored Plans
+            todo!()
         } else {
             // Get plans stored in Redis for the given base_id and plan_id
             // Iterate over the results and deserialize each plan
-            for result in scan_result {
-                if result.trim().is_empty() {
-                    error!("Plan string from Redis is empty for key: {}", key);
-                    continue;
-                }
-              
-                let plan = cache.get(result).await {
-                    Ok(plan) => plan,
-                    Err(e) => {
-                       error!("Error getting plan from Redis: {}", e);
-                    return Err(format!("Redis get error: {}", e));
-                }
-            };
-                    
-                    
-            
-               
-
-                let plan: ProviderABaseEvent = serde_json::from_str(&plan_json).map_err(|e| {
-                    error!("Error deserializing plan: {} | raw value: {}", e, plan_json);
-                    CacheError::Error(format!("Deserialization error: {}", e))
-                })?;
-
-                // Insert the plan into the base_events map
-                base_events
-                    .entry(base_id_clone.clone())
-                    .or_insert_with(Vec::new)
-                    .push(plan);
-            }
+            todo!(
+                "Implement logic to handle Redis results for base_id: {}, plan_id: {}",
+                base_id,
+                plan_id
+            );
         }
     }
 }
