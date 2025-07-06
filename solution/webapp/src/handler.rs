@@ -44,13 +44,13 @@ pub async fn get_plans(
             error!("Invalid event ID format: {}", event_id);
             return Err(format!("Invalid event ID format: {}", event_id));
         }
+
         let base_id = parts[0].to_string();
         let plan_id = parts[1].to_string();
-        let base_id_clone = base_id.clone();
 
         let key = format!("{}:{}:{}:{}", ROOT_KEY, "*", base_id, plan_id);
 
-        let scan_result = match cache.get_keys_matching_pattern(&key) {
+        let scan_result = match cache.get_keys_matching_pattern(&key).await {
             Ok(scan_result) => scan_result,
             Err(e) => {
                 error!("Error scanning Redis for key pattern {}: {}", key, e);
@@ -58,39 +58,41 @@ pub async fn get_plans(
             }
         };
         if scan_result.is_empty() {
-            error!("No plans found for base ID: {}", base_id);
-            return Err(format!("Redis scan error: {}", e));
-        }
+          // Get plans stored in DB 
 
-        // Get plans stored in Redis for the given base_id and plan_id
-        // Iterate over the results and deserialize each plan
-        for result in scan_result {
-            if result.trim().is_empty() {
-                error!("Plan string from Redis is empty for key: {}", key);
-                continue;
+          // Cache stored Plans
+        } else {
+            // Get plans stored in Redis for the given base_id and plan_id
+            // Iterate over the results and deserialize each plan
+            for result in scan_result {
+                if result.trim().is_empty() {
+                    error!("Plan string from Redis is empty for key: {}", key);
+                    continue;
+                }
+              
+                let plan = cache.get(result).await {
+                    Ok(plan) => plan,
+                    Err(e) => {
+                       error!("Error getting plan from Redis: {}", e);
+                    return Err(format!("Redis get error: {}", e));
+                }
+            };
+                    
+                    
+            
+               
+
+                let plan: ProviderABaseEvent = serde_json::from_str(&plan_json).map_err(|e| {
+                    error!("Error deserializing plan: {} | raw value: {}", e, plan_json);
+                    CacheError::Error(format!("Deserialization error: {}", e))
+                })?;
+
+                // Insert the plan into the base_events map
+                base_events
+                    .entry(base_id_clone.clone())
+                    .or_insert_with(Vec::new)
+                    .push(plan);
             }
-            let result_clone = result.clone();
-            let plan = self.get(result).await.map_err(|e| {
-                error!("Error getting plan from Redis: {}", e);
-                CacheError::Error(format!("Redis get error: {}", e))
-            })?;
-            if plan.trim().is_empty() {
-                error!("Plan string is empty for key: {}", result_clone);
-                continue;
-            }
-
-            ;
-
-            let plan: ProviderABaseEvent = serde_json::from_str(&plan_json).map_err(|e| {
-                error!("Error deserializing plan: {} | raw value: {}", e, plan_json);
-                CacheError::Error(format!("Deserialization error: {}", e))
-            })?;
-
-            // Insert the plan into the base_events map
-            base_events
-                .entry(base_id_clone.clone())
-                .or_insert_with(Vec::new)
-                .push(plan);
         }
     }
 }
