@@ -33,7 +33,7 @@ pub fn add_or_update_plan(
         .map_err(StorageError::from)
 }
 
-pub fn get_all_base_plans_with_plans_by_ids(
+pub fn get_base_plans_and_plans_with_event_ids(
     connection: &mut PgPooledConnection,
     event_base_id: &str,
     event_plan_id: &str,
