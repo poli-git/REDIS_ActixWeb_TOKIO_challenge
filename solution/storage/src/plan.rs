@@ -35,15 +35,13 @@ pub fn add_or_update_plan(
 
 pub fn get_all_base_plans_with_plans_by_ids(
     connection: &mut PgPooledConnection,
-    base_plan_id: &str,
-    plan_id: &str,
-    providers_id: &uuid::Uuid,
+    event_base_id: &str,
+    event_plan_id: &str,
 ) -> Result<Vec<(BasePlan, Plan)>, StorageError> {
     base_plans_dsl::base_plans
-        .filter(base_plans_dsl::event_base_id.eq(base_plan_id))
-        .filter(base_plans_dsl::providers_id.eq(providers_id))
-        .inner_join(plans::table)
-        .filter(plans::event_plan_id.eq(plan_id))
+        .filter(base_plans_dsl::event_base_id.eq(event_base_id))
+        .inner_join(plans::table.on(base_plans_dsl::base_plans_id.eq(plans::base_plans_id)))
+        .filter(plans::event_plan_id.eq(event_plan_id))
         .select((BasePlan::as_select(), Plan::as_select()))
         .load::<(BasePlan, Plan)>(connection)
         .map_err(StorageError::from)
