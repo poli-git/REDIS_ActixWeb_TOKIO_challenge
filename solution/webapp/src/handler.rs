@@ -1,6 +1,8 @@
-use chrono::NaiveDateTime;
-use serde::Serialize;
 use std::collections::HashMap;
+
+use chrono::NaiveDateTime;
+use log::error;
+use serde::Serialize;
 use storage::connections::cache::{Cache, ProviderABaseEvent};
 use utoipa::ToSchema;
 
@@ -40,6 +42,7 @@ pub async fn get_plans(
         Err(e) => return Err(format!("Failed to fetch plans: {}", e)),
     };
 
+    let mut base_events = HashMap::new();
     for event_id in matched_event_ids {
         let parts: Vec<&str> = event_id.split(':').collect();
         if parts.len() != 2 {
@@ -67,13 +70,54 @@ pub async fn get_plans(
         } else {
             // Get plans stored in Redis for the given base_id and plan_id
             // Iterate over the results and deserialize each plan
-            todo!(
-                "Implement logic to handle Redis results for base_id: {}, plan_id: {}",
-                base_id,
-                plan_id
-            );
+            for result in scan_result {
+                if result.trim().is_empty() {
+                    error!("Plan value is empty for key - Redis: {}", key);
+                    continue;
+                }
+
+                let result_key = result.clone();
+                let plan = cache.get(result).await.map_err(|e| {
+                    error!("Error getting plan from Redis: {}", e);
+                    format!("Redis get error: {}", e)
+                })?;
+                if plan.trim().is_empty() {
+                    error!("Plan string is empty for key: {}", result_key);
+                    continue;
+                }
+
+                // Remove "@" from all field names before deserialization
+                let plan_json = plan
+                    .replace("\"@plan_start_date\"", "\"plan_start_date\"")
+                    .replace("\"@plan_end_date\"", "\"plan_end_date\"")
+                    .replace("\"@plan_id\"", "\"plan_id\"")
+                    .replace("\"@sell_from\"", "\"sell_from\"")
+                    .replace("\"@sell_to\"", "\"sell_to\"")
+                    .replace("\"@sold_out\"", "\"sold_out\"")
+                    .replace("\"@zone_id\"", "\"zone_id\"")
+                    .replace("\"@capacity\"", "\"capacity\"")
+                    .replace("\"@price\"", "\"price\"")
+                    .replace("\"@name\"", "\"name\"")
+                    .replace("\"@numbered\"", "\"numbered\"");
+
+                let plan: ProviderABaseEvent = serde_json::from_str(&plan_json).map_err(|e| {
+                    error!("Error deserializing plan: {} | raw value: {}", e, plan_json);
+                    format!("Deserialization error: {}", e) // Remove 'return Err(...)' - just return the String directly
+                })?;
+
+                // Insert the plan into the base_events map
+                base_events
+                    .entry(base_id.clone())
+                    .or_insert_with(Vec::new)
+                    .push(plan);
+            }
         }
     }
+    // Flatten the HashMap into a Vec of ProviderABaseEvent
+    let all_events: Vec<ProviderABaseEvent> = base_events.into_values().flatten().collect();
+
+    // Map to ApiResponse<EventsData>
+    Ok(map_provider_events_to_response_dto(&all_events))
 }
 
 pub fn map_provider_events_to_response_dto(

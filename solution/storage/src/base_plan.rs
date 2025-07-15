@@ -48,23 +48,23 @@ mod tests {
 
         let result = get_base_plans(&mut pg_pool);
         assert!(result.is_ok(), "Expected Ok, got {:?}", result);
-    }   
+    }
     #[tokio::test]
     async fn test_get_base_plans_returns_vec() {
         let connection = establish_connection().await;
         let mut pg_pool = connection
             .get()
-            .expect("Failed to get connection from pool");  
+            .expect("Failed to get connection from pool");
         let result = get_base_plans(&mut pg_pool).expect("Expected Ok result");
         // This just checks that the result is a Vec (could be empty)
         assert!(result.is_empty() || !result.is_empty());
-    }   
+    }
     #[tokio::test]
     async fn test_add_or_update_base_plan() {
         let connection = establish_connection().await;
         let mut pg_pool = connection
             .get()
-            .expect("Failed to get connection from pool");  
+            .expect("Failed to get connection from pool");
         let new_base_plan = NewBasePlan {
             base_plans_id: Uuid::new_v4(),
             providers_id: Uuid::new_v4(),
@@ -132,4 +132,4 @@ mod tests {
         assert_eq!(base_plan.title, "Conflicting Base Plan");
         assert_eq!(base_plan.sell_mode, "conflicting_mode");
     }
-}   
+}
