@@ -3,7 +3,6 @@ use crate::xml_models;
 use crate::xml_models::{EventOutput, SellModeEnum};
 
 use storage::base_plan::add_or_update_base_plan;
-use storage::connections::cache::Cache;
 use storage::connections::db::PgPooledConnection;
 use storage::models::base_plans::NewBasePlan;
 use storage::models::plans::NewPlan;
@@ -21,7 +20,7 @@ pub async fn persist_base_plans(
     base_plans: Vec<xml_models::BasePlan>,
     provider_id: uuid::Uuid,
     provider_name: String,
-    redis_expiration_key_time_limit: u32,
+    expiration_key_time_limit: u32,
 ) -> Result<(), PersistPlansError> {
     if base_plans.is_empty() {
         log::warn!(
@@ -40,8 +39,6 @@ pub async fn persist_base_plans(
             ));
         }
     };
-    // Get Cache instance
-    let redis_conn = get_cache().await;
 
     for bp in base_plans {
         let new_base_plan = NewBasePlan {
@@ -74,8 +71,7 @@ pub async fn persist_base_plans(
                     inserted.providers_id,
                     &inserted.title,
                     &mut pg_pool,
-                    &redis_conn,
-                    redis_expiration_key_time_limit,
+                    expiration_key_time_limit,
                 )
                 .await
                 {
@@ -113,8 +109,7 @@ async fn persist_plans(
     provider_id: uuid::Uuid,
     title: &str,
     pg_pool: &mut PgPooledConnection,
-    redis_conn: &Cache,
-    redis_expiration_key_time_limit: u32,
+    expiration_key_time_limit: u32,
 ) -> Result<(), PersistPlansError> {
     if bp_plans.is_empty() {
         log::warn!("No plans found for base_plan ID: {}", base_plans_id);
@@ -168,6 +163,8 @@ async fn persist_plans(
                 );
                 // Cache ONLY plan dates that are associated to a base_plan with sell mode = 'online'
                 if sell_mode_clone.as_ref() == Some(&SellModeEnum::Online) {
+                    // Get Cache instance
+                    let redis_conn = get_cache().await;
                     if let Err(e) = redis_conn
                         .cache_plan_dates(
                             event_base_id.to_string(),
@@ -200,9 +197,7 @@ async fn persist_plans(
                             )
                             .as_str(),
                             serde_json::to_string(&new_event).unwrap_or_default(),
-                            redis_expiration_key_time_limit
-                                .try_into()
-                                .unwrap_or(60 * 60 * 24),
+                            expiration_key_time_limit.try_into().unwrap_or(60 * 60 * 24),
                         )
                         .await
                     {
